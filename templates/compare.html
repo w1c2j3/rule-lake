@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}算法对比仪表盘 - 关联规则挖掘工作台{% endblock %}
+
+{% block content %}
+{# 算法对比页：同一数据湖资产和参数下运行三种算法。 #}
+<section class="page-hero">
+    <div>
+        <span class="hud-label">ALGORITHM BENCHMARK</span>
+        <h1>算法对比仪表盘</h1>
+        <p>在同一数据湖资产、同一参数下同时运行 Apriori、FP-Growth、Eclat，对比耗时、频繁项集数量、规则数量和最高 lift。</p>
+    </div>
+    <a class="btn primary" href="{{ url_for('experiment_page') }}">进入完整实验</a>
+</section>
+
+{# 对比参数表单，提交后通过 query string 重新计算。 #}
+<section class="glass-panel compare-control-panel">
+    <form class="compare-form" action="{{ url_for('compare_page') }}" method="get">
+        <div>
+            <label class="field-label" for="dataset">数据湖资产</label>
+            <select id="dataset" name="dataset">
+                {% for dataset in datasets %}
+                <option value="{{ dataset.id }}" {% if dataset.id == selected_dataset %}selected{% endif %}>{{ dataset.short }} - {{ dataset.transaction_count }} 交易</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="field-label" for="min_support">min_support</label>
+            <input id="min_support" name="min_support" type="number" min="0.01" max="1" step="0.01" value="{{ "%.2f"|format(min_support) }}">
+        </div>
+        <div>
+            <label class="field-label" for="min_confidence">min_confidence</label>
+            <input id="min_confidence" name="min_confidence" type="number" min="0.01" max="1" step="0.05" value="{{ "%.2f"|format(min_confidence) }}">
+        </div>
+        <div>
+            <label class="field-label" for="max_transactions">最多交易数</label>
+            <input id="max_transactions" name="max_transactions" type="number" min="20" max="2000" value="{{ max_transactions }}">
+        </div>
+        <button class="btn primary full" type="submit">重新对比</button>
+    </form>
+</section>
+
+{# 当前对比任务的数据资产和阈值摘要。 #}
+<section class="metric-rail">
+    <article class="metric-card">
+        <span>DATASET</span>
+        <strong>{{ comparison.dataset.short }}</strong>
+        <small>{{ comparison.stats.transaction_count }} 条交易</small>
+    </article>
+    <article class="metric-card">
+        <span>ITEMS</span>
+        <strong>{{ comparison.stats.item_count }}</strong>
+        <small>商品种类</small>
+    </article>
+    <article class="metric-card">
+        <span>SUPPORT</span>
+        <strong>{{ min_support|percent }}</strong>
+        <small>最小支持度</small>
+    </article>
+    <article class="metric-card">
+        <span>CONF</span>
+        <strong>{{ min_confidence|percent }}</strong>
+        <small>最小置信度</small>
+    </article>
+</section>
+
+{# 三个算法的横向基准卡片。 #}
+<section class="compare-dashboard-grid">
+    {% for row in comparison.runs %}
+    <article class="compare-run-card">
+        <span>{{ row.name }}</span>
+        <h2>{{ row.tagline }}</h2>
+        <p>{{ row.compare_note }}</p>
+        <div class="compare-bars">
+            <div><strong>耗时</strong><i style="--w: {{ row.time_width }}%"></i><em>{{ "%.2f"|format(row.elapsed_ms) }} ms</em></div>
+            <div><strong>项集</strong><i style="--w: {{ row.itemset_width }}%"></i><em>{{ row.frequent_count }}</em></div>
+            <div><strong>规则</strong><i style="--w: {{ row.rule_width }}%"></i><em>{{ row.rules_count }}</em></div>
+            <div><strong>lift</strong><i style="--w: {{ row.lift_width }}%"></i><em>{{ "%.2f"|format(row.best_lift) }}</em></div>
+        </div>
+    </article>
+    {% endfor %}
+</section>
+
+{# 自动结论和解读说明。 #}
+<section class="grid two">
+    <article class="glass-panel analysis-card">
+        <span class="hud-label">AUTO CONCLUSION</span>
+        <h2>自动对比结论</h2>
+        {% for item in comparison.analysis %}
+        <p>{{ item }}</p>
+        {% endfor %}
+    </article>
+    <article class="glass-panel">
+        <span class="hud-label">HOW TO READ</span>
+        <h2>如何解读</h2>
+        <p>Apriori 更适合教学展示候选生成，FP-Growth 更强调压缩交易路径，Eclat 更强调集合交集。对比页用于说明同一输入下三者的效率和结果规模差异。</p>
+    </article>
+</section>
+
+{# 详细指标表，支持排序和 CSV 导出。 #}
+<section class="glass-panel table-card">
+    <div class="table-heading">
+        <div>
+            <span class="hud-label">BENCHMARK TABLE</span>
+            <h2>详细对比表</h2>
+        </div>
+        <button class="btn mini" type="button" data-export-table="compare-table" data-export-name="algorithm_compare.csv">导出 CSV</button>
+    </div>
+    <div class="table-wrap">
+        <table class="data-table sticky-table" id="compare-table">
+            <thead>
+                <tr>
+                    <th data-sortable>算法</th>
+                    <th data-sortable data-type="number">耗时 ms</th>
+                    <th data-sortable data-type="number">频繁项集</th>
+                    <th data-sortable data-type="number">规则数</th>
+                    <th data-sortable data-type="number">最高置信度</th>
+                    <th data-sortable data-type="number">平均 lift</th>
+                    <th data-sortable data-type="number">最高 lift</th>
+                    <th>最佳规则</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in comparison.runs %}
+                <tr>
+                    <td>{{ row.name }}</td>
+                    <td data-value="{{ row.elapsed_ms }}">{{ "%.2f"|format(row.elapsed_ms) }}</td>
+                    <td data-value="{{ row.frequent_count }}">{{ row.frequent_count }}</td>
+                    <td data-value="{{ row.rules_count }}">{{ row.rules_count }}</td>
+                    <td data-value="{{ row.best_confidence }}">{{ row.best_confidence|percent }}</td>
+                    <td data-value="{{ row.avg_lift }}">{{ "%.2f"|format(row.avg_lift) }}</td>
+                    <td data-value="{{ row.best_lift }}">{{ "%.2f"|format(row.best_lift) }}</td>
+                    <td>
+                        {% if row.best_rule %}
+                        {{ row.best_rule.antecedent|items }} -> {{ row.best_rule.consequent|items }}
+                        {% else %}
+                        无
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

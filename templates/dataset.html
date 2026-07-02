@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}数据湖 - 关联规则挖掘工作台{% endblock %}
+
+{% block content %}
+{# 数据湖详情页：展示单个资产的来源、画像、字段和预览。 #}
+<section class="page-hero dataset-hero">
+    <div>
+        <span class="hud-label">DATA LAKE ASSET</span>
+        <h1>{{ dataset_info.label }}</h1>
+        <p>{{ dataset_info.description }} 当前页面展示资产画像、字段定义、预处理流水线和固定高度数据预览。</p>
+    </div>
+    <a class="btn primary" href="{{ url_for('experiment_page') }}">用此数据运行实验</a>
+</section>
+
+{# 数据湖资产切换器，点击后通过 query string 切换当前资产。 #}
+<section class="dataset-switcher">
+    {% for dataset in datasets %}
+    <a class="{% if dataset.id == selected_dataset %}active{% endif %}" href="{{ url_for('dataset_page') }}?dataset={{ dataset.id }}">
+        <span>{{ dataset.family }}</span>
+        <strong>{{ dataset.short }}</strong>
+    </a>
+    {% endfor %}
+</section>
+
+{# 当前资产的交易数、商品数、平均篮子大小等摘要指标。 #}
+<section class="metric-rail">
+    <div class="metric-card">
+        <span>TRANSACTIONS</span>
+        <strong>{{ stats.transaction_count }}</strong>
+        <small>当前资产交易数</small>
+    </div>
+    <div class="metric-card">
+        <span>ITEM TYPES</span>
+        <strong>{{ stats.item_count }}</strong>
+        <small>真实商品描述</small>
+    </div>
+    <div class="metric-card">
+        <span>AVG BASKET</span>
+        <strong>{{ stats.avg_basket_size }}</strong>
+        <small>平均商品数</small>
+    </div>
+    <div class="metric-card">
+        <span>MAX BASKET</span>
+        <strong>{{ stats.max_basket_size }}</strong>
+        <small>最大购物篮大小</small>
+    </div>
+</section>
+
+{# 数据来源和预处理流水线说明。 #}
+<section class="intel-grid">
+    <article class="glass-panel source-terminal">
+        <span class="hud-label">SOURCE</span>
+        <h2>{{ dataset_info.source }}</h2>
+        <p>{{ dataset_info.description }}</p>
+        <a class="btn glass" href="{{ dataset_info.source_url }}" target="_blank" rel="noreferrer">打开 UCI 数据源</a>
+    </article>
+
+    <article class="glass-panel">
+        <span class="hud-label">PREPROCESS PIPELINE</span>
+        <h2>预处理流程</h2>
+        <div class="step-stack">
+            <div><strong>01</strong><span>删除取消订单、非正数量记录。</span></div>
+            <div><strong>02</strong><span>过滤邮费、折扣、人工费用等非商品项。</span></div>
+            <div><strong>03</strong><span>按发票号聚合商品描述，形成购物篮。</span></div>
+            <div><strong>04</strong><span>保留高频真实商品，保证课堂演示速度。</span></div>
+        </div>
+    </article>
+</section>
+
+{# 高频商品和商品共现统计图。 #}
+<section class="viz-grid">
+    <article class="glass-panel chart-panel">
+        <div class="panel-heading">
+            <span class="hud-label">ITEM FREQUENCY</span>
+            <h2>高频商品雷达</h2>
+        </div>
+        <div class="bar-list">
+            {% for item in stats.top_items %}
+            <div class="bar-row">
+                <div>
+                    <strong>{{ item.name }}</strong>
+                    <span>{{ item.count }} 次 / {{ item.support|percent }}</span>
+                </div>
+                <i style="--w: {{ item.width }}%"></i>
+            </div>
+            {% endfor %}
+        </div>
+    </article>
+
+    <article class="glass-panel chart-panel">
+        <div class="panel-heading">
+            <span class="hud-label">CO-OCCURRENCE</span>
+            <h2>商品共现榜</h2>
+        </div>
+        <div class="pair-list">
+            {% for pair in stats.top_pairs %}
+            <div class="pair-card">
+                <span>{{ pair["items"]|items }}</span>
+                <strong>{{ pair.count }}</strong>
+                <i style="--w: {{ pair.width }}%"></i>
+            </div>
+            {% endfor %}
+        </div>
+    </article>
+</section>
+
+{# 字段定义和购物篮大小分布。 #}
+<section class="viz-grid lower">
+    <article class="glass-panel">
+        <span class="hud-label">FIELDS</span>
+        <h2>字段定义</h2>
+        <div class="field-table">
+            <div><strong>transaction_id</strong><span>交易编号，每一行代表一次购物篮交易。</span></div>
+            <div><strong>items</strong><span>本次交易购买的商品，CSV 中使用英文逗号分隔。</span></div>
+        </div>
+    </article>
+
+    <article class="glass-panel chart-panel">
+        <span class="hud-label">BASKET SIZE</span>
+        <h2>购物篮大小分布</h2>
+        <div class="mini-bars">
+            {% for row in stats.basket_distribution %}
+            <div>
+                <span>{{ row.size }} 件</span>
+                <i style="--w: {{ row.width }}%"></i>
+                <strong>{{ row.count }}</strong>
+            </div>
+            {% endfor %}
+        </div>
+    </article>
+</section>
+
+{# 固定高度数据预览表，避免整页被长表格撑开。 #}
+<section class="glass-panel table-card dataset-preview-card">
+    <div class="table-heading">
+        <div>
+            <span class="hud-label">DATA PREVIEW</span>
+            <h2>资产数据预览</h2>
+        </div>
+        <div class="table-actions">
+            <span class="table-count">预览 {{ preview_rows|length }} / {{ stats.transaction_count }} 条</span>
+            <button class="btn mini" type="button" data-expand-table>展开更多</button>
+        </div>
+    </div>
+    <div class="table-wrap fixed-preview" data-preview-table>
+        <table class="data-table sticky-table">
+            <thead>
+                <tr>
+                    <th>transaction_id</th>
+                    <th>items</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in preview_rows %}
+                <tr class="{% if loop.index > 40 %}extra-row{% endif %}">
+                    <td>{{ row.transaction_id }}</td>
+                    <td>{{ row.items_text }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

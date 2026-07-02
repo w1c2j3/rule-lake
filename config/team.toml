@@ -1,0 +1,96 @@
+# 项目档案页配置。
+# 修改这里即可更新 /team 页面，不需要改 HTML 模板。
+
+# 小组和项目的基础信息。
+[group]
+name = "第 3 组"
+project_name = "关联规则挖掘算法课程网站"
+subtitle = "Apriori / FP-Growth / Eclat"
+course = "数据挖掘课程项目"
+description = "基于真实购物篮数据，完成关联规则挖掘算法教学、实验运行、结果分析和报告导出。"
+
+# 每个 [[members]] 表示一名成员。
+# responsibility 是字符串数组，会在成员卡片中逐条展示。
+[[members]]
+name = "张三"
+student_id = "20240001"
+role = "组长 / 后端与算法"
+avatar = "张"
+contact = ""
+responsibility = [
+    "Flask 路由设计",
+    "Apriori 算法实现",
+    "实验结果分析",
+]
+
+# 第二名成员配置。
+[[members]]
+name = "李四"
+student_id = "20240002"
+role = "数据湖与前端"
+avatar = "李"
+contact = ""
+responsibility = [
+    "真实数据湖资产整理",
+    "数据湖页面展示",
+    "前端交互优化",
+]
+
+# 第三名成员配置。
+[[members]]
+name = "王五"
+student_id = "20240003"
+role = "算法讲解与报告"
+avatar = "王"
+contact = ""
+responsibility = [
+    "FP-Growth / Eclat 讲解",
+    "可视化教学内容",
+    "实验报告整理",
+]
+
+# 项目模块分工，会展示在 /team 页面中。
+[[modules]]
+name = "数据湖资产管理"
+owner = "全组"
+status = "已完成"
+description = "内置多个公开购物篮数据集，支持上传 CSV 和服务器本机路径。"
+
+[[modules]]
+name = "算法运行控制台"
+owner = "全组"
+status = "已完成"
+description = "支持算法选择、阈值设置、三算法对比和支持度扫描。"
+
+[[modules]]
+name = "可视化教学舱"
+owner = "全组"
+status = "已完成"
+description = "用动态步骤解释 Apriori、FP-Growth、Eclat 的核心过程。"
+
+[[modules]]
+name = "结果分析与导出"
+owner = "全组"
+status = "已完成"
+description = "展示频繁项集、关联规则、lift 分析、CSV 导出和 Markdown 报告。"
+
+# 项目进度时间线。
+[[milestones]]
+title = "真实数据湖接入"
+date = "第 1 阶段"
+status = "已完成"
+
+[[milestones]]
+title = "三种算法可运行"
+date = "第 2 阶段"
+status = "已完成"
+
+[[milestones]]
+title = "可视化教学与结果分析"
+date = "第 3 阶段"
+status = "已完成"
+
+[[milestones]]
+title = "页面发布与小组展示"
+date = "第 4 阶段"
+status = "进行中"

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}实验历史中心 - 关联规则挖掘工作台{% endblock %}
+
+{% block content %}
+{# 历史中心页面：内容主要由 main.js 从 localStorage 渲染。 #}
+<section class="page-hero">
+    <div>
+        <span class="hud-label">EXPERIMENT HISTORY</span>
+        <h1>实验历史中心</h1>
+        <p>集中查看本浏览器保存过的实验记录，支持导出 JSON、复制摘要、重新运行内置数据湖实验。</p>
+    </div>
+    <div class="console-badge">
+        <span>LOCAL STORAGE</span>
+        <strong data-history-count>0 条记录</strong>
+    </div>
+</section>
+
+{# 历史操作按钮：导出、复制、清空和新建实验。 #}
+<section class="result-action-bar">
+    <a class="btn primary" href="{{ url_for('experiment_page') }}">新建实验</a>
+    <button class="btn glass" type="button" data-export-history>导出历史 JSON</button>
+    <button class="btn glass" type="button" data-copy-history>复制历史摘要</button>
+    <button class="btn glass" type="button" data-clear-history>清空历史</button>
+</section>
+
+{# 历史摘要指标由 JS 动态写入。 #}
+<section class="metric-rail history-summary" data-history-summary>
+    <article class="metric-card">
+        <span>RUNS</span>
+        <strong>0</strong>
+        <small>实验次数</small>
+    </article>
+    <article class="metric-card">
+        <span>ITEMSETS</span>
+        <strong>0</strong>
+        <small>累计频繁项集</small>
+    </article>
+    <article class="metric-card">
+        <span>RULES</span>
+        <strong>0</strong>
+        <small>累计规则</small>
+    </article>
+    <article class="metric-card">
+        <span>ALGORITHMS</span>
+        <strong>0</strong>
+        <small>涉及算法</small>
+    </article>
+</section>
+
+{# 历史记录列表由 JS 根据浏览器本地存储生成。 #}
+<section class="glass-panel history-center-panel">
+    <div class="panel-heading">
+        <div>
+            <span class="hud-label">RUN LIST</span>
+            <h2>历史实验记录</h2>
+        </div>
+        <span class="table-count">保存在当前浏览器</span>
+    </div>
+    <div class="history-center-list" data-history-center>
+        <p>暂无历史记录。运行一次实验后，结果页会自动保存到这里。</p>
+    </div>
+</section>
+{% endblock %}

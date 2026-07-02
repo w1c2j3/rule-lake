@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block title %}Result - 关联规则挖掘算法课程网站{% endblock %}
+
+{% block content %}
+{# 结果页：展示一次挖掘任务的参数、过程、图表、规则和分析。 #}
+<section class="result-hero neo-result">
+    <div>
+        <span class="hud-label">RUN RESULT</span>
+        <h1>{{ algorithm_name }}</h1>
+        <p>{{ algorithm_tagline }}</p>
+    </div>
+    <div class="run-params">
+        <span>min_support <strong>{{ min_support|percent }}</strong></span>
+        <span>min_confidence <strong>{{ min_confidence|percent }}</strong></span>
+        <span>耗时 <strong>{{ "%.2f"|format(elapsed_ms) }} ms</strong></span>
+    </div>
+</section>
+
+{# data-history-payload 供 main.js 保存浏览器本地实验历史。 #}
+<section
+    class="result-action-bar"
+    data-history-payload='{{ {
+        "algorithm": algorithm_name,
+        "algorithm_key": algorithm_key,
+        "dataset": dataset_label,
+        "dataset_id": history_dataset_id,
+        "support": min_support|percent,
+        "confidence": min_confidence|percent,
+        "min_support": min_support,
+        "min_confidence": min_confidence,
+        "max_transactions": max_transactions,
+        "itemsets": frequent_itemsets|length,
+        "rules": rules|length,
+        "elapsed": "%.2f"|format(elapsed_ms) ~ " ms"
+    }|tojson }}'
+>
+    <button class="btn primary" type="button" data-print-report>打印/导出报告</button>
+    <button class="btn glass" type="button" data-copy-report>复制 Markdown 报告</button>
+    <button class="btn glass" type="button" data-save-history>保存到实验历史</button>
+    <a class="btn glass" href="{{ url_for('experiment_page') }}">返回控制台</a>
+</section>
+
+<section class="metric-rail result-metrics">
+    {# 结果摘要指标：项集数、规则数、平均置信度、平均 lift。 #}
+    <div class="metric-card">
+        <span>ITEMSETS</span>
+        <strong>{{ frequent_itemsets|length }}</strong>
+        <small>频繁项集</small>
+    </div>
+    <div class="metric-card">
+        <span>RULES</span>
+        <strong>{{ rules|length }}</strong>
+        <small>关联规则</small>
+    </div>
+    <div class="metric-card">
+        <span>AVG CONF</span>
+        <strong>{{ result_visuals.avg_confidence|percent }}</strong>
+        <small>平均置信度</small>
+    </div>
+    <div class="metric-card">
+        <span>AVG LIFT</span>
+        <strong>{{ "%.2f"|format(result_visuals.avg_lift) }}</strong>
+        <small>平均提升度</small>
+    </div>
+</section>
+
+<section class="glass-panel source-card">
+    <span class="hud-label">DATASET USED</span>
+    <h2>{{ dataset_label }}</h2>
+    <p>本次运行使用 {{ stats.transaction_count }} 条交易，平均每个购物篮包含 {{ stats.avg_basket_size }} 个商品。</p>
+</section>
+
+{# 本次真实算法运行阶段可视化。 #}
+<section class="glass-panel run-visual-panel">
+    <div class="panel-heading">
+        <span class="hud-label">REAL RUN VISUAL</span>
+        <h2>本次真实运行过程可视化</h2>
+    </div>
+    <div class="run-stage-grid">
+        {% for stage in run_stages %}
+        <article class="run-stage-card">
+            <span>{{ stage.label }}</span>
+            <h3>{{ stage.title }}</h3>
+            <div class="stage-meter"><i style="--w: {{ stage.width }}%"></i></div>
+            <div class="stage-values">
+                <strong>{{ stage.primary }}</strong><small>{{ stage.primary_label }}</small>
+                {% if stage.secondary_label %}
+                <strong>{{ stage.secondary }}</strong><small>{{ stage.secondary_label }}</small>
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+
+{% if comparison %}
+{# 勾选三算法对比时，展示同一请求内三种算法的结果摘要。 #}
+<section class="compare-cards">
+    {% for row in comparison %}
+    <article class="compare-card {% if row.key == algorithm_key %}active{% endif %}">
+        <span>{{ row.name }}</span>
+        <div><strong>{{ "%.2f"|format(row.elapsed_ms) }}</strong><small>ms</small></div>
+        <p>{{ row.frequent_count }} 项集 / {{ row.rules_count }} 规则 / lift {{ "%.2f"|format(row.best_lift) }}</p>
+    </article>
+    {% endfor %}
+</section>
+{% endif %}
+
+{% if dataset_comparison %}
+{# 勾选跨数据湖资产对比时展示。 #}
+<section class="glass-panel table-card">
+    <div class="table-heading">
+        <div>
+            <span class="hud-label">DATA LAKE COMPARISON</span>
+            <h2>跨数据湖资产对比</h2>
+        </div>
+        <span class="table-count">{{ dataset_comparison|length }} 个资产</span>
+    </div>
+    <div class="table-wrap">
+        <table class="data-table sticky-table">
+            <thead>
+                <tr>
+                    <th>数据湖资产</th>
+                    <th>类型</th>
+                    <th>交易数</th>
+                    <th>商品数</th>
+                    <th>耗时</th>
+                    <th>频繁项集</th>
+                    <th>规则数</th>
+                    <th>最高 lift</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in dataset_comparison %}
+                <tr>
+                    <td>{{ row.label }}</td>
+                    <td>{{ row.family }}</td>
+                    <td>{{ row.transactions }}</td>
+                    <td>{{ row.items }}</td>
+                    <td>{{ "%.2f"|format(row.elapsed_ms) }} ms</td>
+                    <td>{{ row.frequent_count }}</td>
+                    <td>{{ row.rules_count }}</td>
+                    <td>{{ "%.2f"|format(row.best_lift) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endif %}
+
+{% if threshold_sweep %}
+{# 勾选支持度阈值扫描时展示。 #}
+<section class="glass-panel chart-panel sweep-panel">
+    <div class="panel-heading">
+        <span class="hud-label">THRESHOLD SWEEP</span>
+        <h2>支持度阈值扫描</h2>
+    </div>
+    <div class="sweep-list">
+        {% for row in threshold_sweep %}
+        <div class="sweep-row">
+            <strong>{{ row.support|percent }}</strong>
+            <div>
+                <span>项集 {{ row.frequent_count }}</span>
+                <i class="itemset-bar" style="--w: {{ row.itemsets_width }}%"></i>
+            </div>
+            <div>
+                <span>规则 {{ row.rules_count }}</span>
+                <i class="rule-bar" style="--w: {{ row.rules_width }}%"></i>
+            </div>
+            <em>{{ "%.2f"|format(row.elapsed_ms) }} ms</em>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<section class="viz-grid">
+    {# Top 频繁项集和 Top lift 规则图表。 #}
+    <article class="glass-panel chart-panel">
+        <div class="panel-heading">
+            <span class="hud-label">TOP ITEMSETS</span>
+            <h2>高支持度频繁项集</h2>
+        </div>
+        <div class="bar-list">
+            {% for row in result_visuals.top_itemsets %}
+            <div class="bar-row">
+                <div>
+                    <strong>{{ row["items"]|items }}</strong>
+                    <span>{{ row.support|percent }}</span>
+                </div>
+                <i style="--w: {{ row.width }}%"></i>
+            </div>
+            {% else %}
+            <div class="empty-suggestion">
+                <strong>没有二项及以上频繁项集</strong>
+                <p>建议降低 min_support，或开启支持度阈值扫描，观察规则数量变化。</p>
+            </div>
+            {% endfor %}
+        </div>
+    </article>
+
+    <article class="glass-panel chart-panel">
+        <div class="panel-heading">
+            <span class="hud-label">TOP RULES</span>
+            <h2>高 lift 规则</h2>
+        </div>
+        <div class="rule-radar">
+            {% for row in result_visuals.top_rules %}
+            <div class="rule-radar-row">
+                <span>{{ row.antecedent|items }} -> {{ row.consequent|items }}</span>
+                <i style="--w: {{ row.width }}%"></i>
+                <strong>{{ "%.2f"|format(row.lift) }}</strong>
+            </div>
+            {% else %}
+            <div class="empty-suggestion">
+                <strong>没有满足置信度的规则</strong>
+                <p>建议降低 min_confidence，或换用更密集的数据湖资产。</p>
+            </div>
+            {% endfor %}
+        </div>
+    </article>
+</section>
+
+<section class="grid two">
+    {# 左侧是算法过程日志，右侧是自动文字分析。 #}
+    <article class="glass-panel">
+        <span class="hud-label">PROCESS LOG</span>
+        <h2>运行过程</h2>
+        <ol class="process-list">
+            {% for log in process_logs %}
+            <li>{{ log }}</li>
+            {% endfor %}
+        </ol>
+    </article>
+
+    <article class="glass-panel analysis-card">
+        <span class="hud-label">AUTO ANALYSIS</span>
+        <h2>结果分析</h2>
+        {% for item in analysis %}
+        <p>{{ item }}</p>
+        {% endfor %}
+        <div class="mini-bars size-bars">
+            {% for row in result_visuals.itemset_size_counts %}
+            <div>
+                <span>{{ row.size }} 项集</span>
+                <i style="--w: {{ row.width }}%"></i>
+                <strong>{{ row.count }}</strong>
+            </div>
+            {% endfor %}
+        </div>
+    </article>
+</section>
+
+<section class="glass-panel table-card">
+    {# 频繁项集明细表，支持搜索、排序和 CSV 导出。 #}
+    <div class="table-heading">
+        <div>
+            <span class="hud-label">FREQUENT ITEMSETS</span>
+            <h2>频繁项集</h2>
+        </div>
+        <div class="table-actions">
+            <button class="btn mini" type="button" data-export-table="itemsets-table" data-export-name="frequent_itemsets.csv">导出 CSV</button>
+            <span class="table-count">{{ frequent_itemsets|length }} 条</span>
+        </div>
+    </div>
+    <div class="table-toolbar">
+        <input type="search" placeholder="搜索项集" data-table-search="itemsets-table">
+    </div>
+    <div class="table-wrap fixed-result-table">
+        <table class="data-table sticky-table" id="itemsets-table">
+            <thead>
+                <tr>
+                    <th data-sortable>项集</th>
+                    <th data-sortable data-type="number">支持度</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in frequent_itemsets %}
+                <tr>
+                    <td>{{ row["items"]|items }}</td>
+                    <td data-value="{{ row.support }}">{{ row.support|percent }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="2" class="empty-cell">当前参数下没有频繁项集。</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="glass-panel table-card">
+    {# 关联规则探索表，支持搜索、强规则筛选、收藏和导出。 #}
+    <div class="table-heading">
+        <div>
+            <span class="hud-label">ASSOCIATION RULES</span>
+            <h2>关联规则探索器</h2>
+        </div>
+        <div class="table-actions">
+            <button class="btn mini" type="button" data-export-table="rules-table" data-export-name="association_rules.csv">导出 CSV</button>
+            <span class="table-count">{{ rules|length }} 条</span>
+        </div>
+    </div>
+    <div class="table-toolbar rule-toolbar">
+        <input type="search" placeholder="搜索前件或后件" data-table-search="rules-table">
+        <label>最小 lift <input type="number" min="0" step="0.1" value="0" data-min-lift></label>
+        <label>最小 confidence <input type="number" min="0" max="1" step="0.05" value="0" data-min-confidence></label>
+        <button class="btn mini" type="button" data-strong-rules>筛选强规则</button>
+    </div>
+    <div class="table-wrap fixed-result-table">
+        <table class="data-table sticky-table" id="rules-table">
+            <thead>
+                <tr>
+                    <th class="favorite-cell">收藏</th>
+                    <th data-sortable>前件</th>
+                    <th data-sortable>后件</th>
+                    <th data-sortable data-type="number">支持度</th>
+                    <th data-sortable data-type="number">置信度</th>
+                    <th data-sortable data-type="number">提升度 lift</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rules %}
+                <tr data-lift="{{ row.lift }}" data-confidence="{{ row.confidence }}">
+                    <td class="favorite-cell">
+                        <button class="favorite-rule-btn" type="button" data-favorite-rule aria-label="收藏规则">+</button>
+                    </td>
+                    <td>{{ row.antecedent|items }}</td>
+                    <td>{{ row.consequent|items }}</td>
+                    <td data-value="{{ row.support }}">{{ row.support|percent }}</td>
+                    <td data-value="{{ row.confidence }}">{{ row.confidence|percent }}</td>
+                    <td data-value="{{ row.lift }}">{{ "%.2f"|format(row.lift) }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="empty-cell">当前参数下没有满足置信度的关联规则。</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="glass-panel favorite-rules-panel">
+    {# 本地收藏的规则看板，便于答辩时快速聚焦重点规则。 #}
+    <div class="panel-heading">
+        <div>
+            <span class="hud-label">RULE SHORTLIST</span>
+            <h2>收藏规则看板</h2>
+        </div>
+        <button class="btn mini" type="button" data-clear-favorites>清空收藏</button>
+    </div>
+    <div class="favorite-rule-list" data-favorite-rules>
+        <p>点击关联规则表格中的“+”按钮后，这里会汇总适合展示的规则。</p>
+    </div>
+</section>
+
+<div class="result-actions">
+    <a class="btn glass" href="{{ url_for('experiment_page') }}">返回控制台</a>
+    <a class="btn primary" href="{{ url_for('dataset_page') }}">查看数据档案</a>
+</div>
+{% endblock %}

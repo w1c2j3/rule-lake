@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Algorithms Visual Lab - 关联规则挖掘算法课程网站{% endblock %}
+
+{% block content %}
+{# 算法教学页：用同一组迷你购物篮可视化三种算法步骤。 #}
+<section class="page-hero algo-lab-hero">
+    <div>
+        <span class="hud-label">VISUAL TEACHING LAB</span>
+        <h1>关联规则算法可视化教学舱</h1>
+        <p>这里不再只给文字解释，而是用同一组迷你购物篮数据，把 Apriori、FP-Growth、Eclat 的每一步挖掘过程可视化出来。</p>
+    </div>
+    <a class="btn primary" href="{{ url_for('experiment_page') }}">进入真实实验</a>
+</section>
+
+{# 左侧为教学数据，右侧为 JS 动态渲染的算法步骤画布。 #}
+<section class="visual-lab-shell">
+    <aside class="visual-sidebar glass-panel">
+        <span class="hud-label">DEMO DATA</span>
+        <h2>迷你购物篮</h2>
+        <p>教学演示使用 5 条交易，最小支持度计数为 2，方便观察每一步变化。</p>
+        <div class="demo-baskets" id="demo-baskets"></div>
+        <div class="legend-grid">
+            <span><i class="legend-yellow"></i>频繁/保留</span>
+            <span><i class="legend-cyan"></i>候选/路径</span>
+            <span><i class="legend-red"></i>剪枝/过滤</span>
+        </div>
+    </aside>
+
+    <section class="visual-stage glass-panel">
+        <div class="visual-toolbar">
+            <div>
+                <span class="hud-label">ALGORITHM VISUALIZER</span>
+                <h2 id="visual-title">Apriori 可视化</h2>
+            </div>
+            <div class="visual-tabs" role="tablist">
+                <button class="active" type="button" data-visual-algo="apriori">Apriori</button>
+                <button type="button" data-visual-algo="fpgrowth">FP-Growth</button>
+                <button type="button" data-visual-algo="eclat">Eclat</button>
+            </div>
+        </div>
+
+        <div class="step-track" id="step-track"></div>
+
+        <div class="visual-grid">
+            <div class="visual-canvas" id="visual-canvas"></div>
+            <aside class="step-narration">
+                <span id="step-code">STEP 01</span>
+                <h3 id="step-title">扫描单项支持度</h3>
+                <p id="step-text"></p>
+                <div class="formula-box" id="formula-box"></div>
+                <div class="step-controls">
+                    <button class="btn glass" type="button" id="prev-step">上一步</button>
+                    <button class="btn primary" type="button" id="next-step">下一步</button>
+                </div>
+            </aside>
+        </div>
+    </section>
+</section>
+
+{# 三张教学卡片总结每种算法的核心差异。 #}
+<section class="teaching-map">
+    <article class="teaching-card tone-yellow">
+        <span>APRIORI</span>
+        <h2>看候选项集怎样被剪枝</h2>
+        <p>从单个商品开始生成候选，再用支持度过滤。你可以直观看到“候选很多，但频繁项集更少”。</p>
+    </article>
+    <article class="teaching-card tone-cyan">
+        <span>FP-GROWTH</span>
+        <h2>看交易怎样压缩成树</h2>
+        <p>先按频率排序交易，再共享相同前缀形成 FP-Tree。重点是“用树压缩重复路径”。</p>
+    </article>
+    <article class="teaching-card tone-red">
+        <span>ECLAT</span>
+        <h2>看 TID-set 交集怎样算支持度</h2>
+        <p>每个商品对应交易 ID 集合，两个商品组合的支持度就是集合交集大小。</p>
+    </article>
+</section>
+
+{# 展示后端传入的核心伪代码，用于课程讲解。 #}
+<section class="glass-panel code-lab">
+    <div class="panel-heading">
+        <span class="hud-label">CORE CODE</span>
+        <h2>三个算法的核心伪代码</h2>
+    </div>
+    <div class="code-tab-grid">
+        {% for key, snippet in code_snippets.items() %}
+        <article class="code-card">
+            <span>{{ snippet.name }}</span>
+            <h3>{{ snippet.title }}</h3>
+            <pre><code>{{ snippet.code }}</code></pre>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

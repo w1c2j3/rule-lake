@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Console - 关联规则挖掘算法课程网站{% endblock %}
+
+{% block content %}
+{# 实验控制台：配置数据湖资产、算法、阈值和对比选项。 #}
+<section class="page-hero console-hero">
+    <div>
+        <span class="hud-label">EXPERIMENT CONSOLE</span>
+        <h1>规则挖掘控制台</h1>
+        <p>选择数据源、算法、阈值和对比模式。启动后进入结果工作台，支持筛选、图表和导出。</p>
+    </div>
+    <div class="console-badge">
+        <span>READY</span>
+        <strong>ONLINE</strong>
+    </div>
+</section>
+
+<section class="console-layout upgraded">
+    {# 主表单提交到 /run，后端统一执行挖掘任务并渲染结果页。 #}
+    <form class="glass-panel experiment-form control-panel" action="{{ url_for('run_algorithm') }}" method="post" enctype="multipart/form-data">
+        {% if error %}
+        <div class="alert">{{ error }}</div>
+        {% endif %}
+
+        <div class="control-block">
+            {# 数据源支持三种模式：内置资产、上传 CSV、本机 CSV 路径。 #}
+            <div class="control-title">
+                <span>01</span>
+                <div>
+                    <strong>数据湖资产选择</strong>
+                    <p>支持内置数据湖资产、上传 CSV、本机 CSV 路径。</p>
+                </div>
+            </div>
+            <div class="radio-grid source-grid">
+                <label>
+                    <input type="radio" name="dataset_mode" value="builtin" checked>
+                    <span>内置数据湖</span>
+                </label>
+                <label>
+                    <input type="radio" name="dataset_mode" value="upload">
+                    <span>上传 CSV</span>
+                </label>
+                <label>
+                    <input type="radio" name="dataset_mode" value="local_path">
+                    <span>本机路径</span>
+                </label>
+            </div>
+
+            <div class="builtin-dataset-picker" data-dataset-section="builtin">
+                <label class="field-label" for="builtin_dataset">选择数据湖资产</label>
+                <select id="builtin_dataset" name="builtin_dataset" data-builtin-dataset-select>
+                    {% for dataset in datasets %}
+                    <option
+                        value="{{ dataset.id }}"
+                        data-support="{{ dataset.recommended_support }}"
+                        data-confidence="{{ dataset.recommended_confidence }}"
+                        data-transactions="{{ dataset.transaction_count }}"
+                        data-items="{{ dataset.item_count }}"
+                    >
+                        {{ dataset.short }} - {{ dataset.transaction_count }} 交易 / {{ dataset.item_count }} 商品
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="custom-dataset-fields">
+                <div class="dataset-field" data-dataset-section="upload">
+                    <label class="field-label" for="dataset_file">上传 CSV 文件</label>
+                    <input id="dataset_file" name="dataset_file" type="file" accept=".csv">
+                </div>
+
+                <div class="dataset-field" data-dataset-section="local_path">
+                    <label class="field-label" for="dataset_path">服务器本机 CSV 路径</label>
+                    <input id="dataset_path" name="dataset_path" type="text" placeholder="/home/chase/data/baskets.csv">
+                </div>
+
+                <div class="inline-fields">
+                    <div>
+                        <label class="field-label" for="transaction_column">交易字段名</label>
+                        <input id="transaction_column" name="transaction_column" type="text" placeholder="自动识别">
+                    </div>
+                    <div>
+                        <label class="field-label" for="item_column">商品字段名</label>
+                        <input id="item_column" name="item_column" type="text" placeholder="自动识别">
+                    </div>
+                </div>
+            </div>
+            <button class="btn glass full preview-btn" type="button" data-preview-dataset>预览并校验数据湖资产</button>
+            <div class="dataset-preview-console" data-dataset-preview hidden></div>
+        </div>
+
+        <div class="control-block">
+            {# 算法选择卡片通过 JS 同步到隐藏 select。 #}
+            <div class="control-title">
+                <span>02</span>
+                <div>
+                    <strong>算法选择</strong>
+                    <p>点击卡片切换算法，右侧状态面板会同步显示当前任务。</p>
+                </div>
+            </div>
+            <select id="algorithm" name="algorithm" class="sr-select" data-algorithm-select>
+                {% for key, item in algorithms.items() %}
+                <option value="{{ key }}">{{ item.name }} - {{ item.tagline }}</option>
+                {% endfor %}
+            </select>
+            <div class="algorithm-picker">
+                {% for key, item in algorithms.items() %}
+                <button class="algo-select-card {% if loop.first %}active{% endif %}" type="button" data-algo-card="{{ key }}" data-algo-name="{{ item.name }}">
+                    <span>{{ "ALGO-%02d"|format(loop.index) }}</span>
+                    <strong>{{ item.name }}</strong>
+                    <small>{{ item.tagline }}</small>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="control-block">
+            {# 阈值参数会直接影响频繁项集和规则数量。 #}
+            <div class="control-title">
+                <span>03</span>
+                <div>
+                    <strong>阈值参数</strong>
+                    <p>使用预设快速切换，也可以手动拖动滑块。</p>
+                </div>
+            </div>
+            <div class="preset-row">
+                <button type="button" class="preset-btn" data-preset-support="0.03" data-preset-confidence="0.40">探索模式</button>
+                <button type="button" class="preset-btn active" data-preset-support="0.06" data-preset-confidence="0.50">平衡模式</button>
+                <button type="button" class="preset-btn" data-preset-support="0.10" data-preset-confidence="0.70">严格模式</button>
+            </div>
+
+            <div class="slider-field">
+                <div class="field-row">
+                    <label class="field-label" for="min_support">min_support</label>
+                    <strong data-slider-output="min_support">0.06</strong>
+                </div>
+                <input id="min_support" name="min_support" type="range" min="0.02" max="0.30" value="0.06" step="0.01">
+            </div>
+
+            <div class="slider-field">
+                <div class="field-row">
+                    <label class="field-label" for="min_confidence">min_confidence</label>
+                    <strong data-slider-output="min_confidence">0.50</strong>
+                </div>
+                <input id="min_confidence" name="min_confidence" type="range" min="0.1" max="1" value="0.50" step="0.05">
+            </div>
+        </div>
+
+        <div class="control-block final-block">
+            {# 扩展选项用于展示三算法对比、跨资产对比和支持度扫描。 #}
+            <div class="inline-fields">
+                <div>
+                    <label class="field-label" for="max_transactions">最多使用交易数</label>
+                    <input id="max_transactions" name="max_transactions" type="number" min="20" max="2000" value="300">
+                </div>
+                <label class="check-row">
+                    <input type="checkbox" name="compare_algorithms" checked>
+                    <span>同时运行三种算法对比</span>
+                </label>
+            </div>
+            <div class="inline-fields extra-options">
+                <label class="check-row">
+                    <input type="checkbox" name="compare_datasets">
+                    <span>跨数据湖资产对比</span>
+                </label>
+                <label class="check-row">
+                    <input type="checkbox" name="sweep_thresholds">
+                    <span>执行支持度阈值扫描</span>
+                </label>
+            </div>
+            <button class="btn primary full launch-btn" type="submit">启动规则挖掘</button>
+        </div>
+    </form>
+
+    <aside class="console-side">
+        {# 右侧状态栏展示当前参数、默认资产画像和本地历史。 #}
+        <article class="glass-panel live-panel">
+            <span class="hud-label">TASK STATUS</span>
+            <h2>当前任务</h2>
+            <div class="task-readout">
+                <div><span>ALGORITHM</span><strong data-active-algo>Apriori</strong></div>
+                <div><span>SUPPORT</span><strong data-active-support>0.06</strong></div>
+                <div><span>CONFIDENCE</span><strong data-active-confidence>0.50</strong></div>
+                <div><span>DATASET</span><strong data-active-dataset>UCI France</strong></div>
+            </div>
+        </article>
+
+        <article class="glass-panel metric-panel">
+            <span class="hud-label">DATA LAKE SNAPSHOT</span>
+            <h2>默认数据湖资产</h2>
+            <div class="mini-stats">
+                <div><span>交易</span><strong>{{ stats.transaction_count }}</strong></div>
+                <div><span>商品</span><strong>{{ stats.item_count }}</strong></div>
+                <div><span>均值</span><strong>{{ stats.avg_basket_size }}</strong></div>
+            </div>
+        </article>
+
+        <article class="glass-panel hint-panel">
+            <span class="hud-label">OUTPUT MODULES</span>
+            <h2>结果页功能</h2>
+            <ul class="feature-list">
+                <li>频繁项集表格</li>
+                <li>关联规则表格</li>
+                <li>Top 规则图表</li>
+                <li>规则筛选与 CSV 导出</li>
+                <li>强规则一键筛选</li>
+                <li>规则收藏看板</li>
+                <li>三算法运行对比</li>
+                <li>独立算法对比仪表盘</li>
+                <li>商品推荐模拟器</li>
+                <li>实验历史记录</li>
+                <li>打印/复制实验报告</li>
+            </ul>
+        </article>
+
+        <article class="glass-panel history-panel">
+            <span class="hud-label">LOCAL HISTORY</span>
+            <h2>最近实验</h2>
+            <div data-history-list>
+                <p>暂无历史记录，运行一次实验后会自动保存到本浏览器。</p>
+            </div>
+            <button class="btn glass full" type="button" data-clear-history>清空历史</button>
+        </article>
+    </aside>
+</section>
+{% endblock %}

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}商品推荐模拟器 - 关联规则挖掘工作台{% endblock %}
+
+{% block content %}
+{# 推荐模拟器：把关联规则用于购物篮推荐场景。 #}
+<section class="page-hero">
+    <div>
+        <span class="hud-label">RULE RECOMMENDER</span>
+        <h1>商品推荐模拟器</h1>
+        <p>选择用户已经购买的商品，系统会基于真实挖掘出的关联规则推荐可能一起购买的商品，并展示 support、confidence、lift 和推荐分数。</p>
+    </div>
+    <a class="btn primary" href="{{ url_for('compare_page') }}">查看算法对比</a>
+</section>
+
+<section class="recommender-layout">
+    {# 推荐条件表单：选择资产、算法、阈值和已购商品。 #}
+    <form class="glass-panel recommender-form" action="{{ url_for('recommender_page') }}" method="get">
+        <div class="control-title">
+            <span>01</span>
+            <div>
+                <strong>选择推荐条件</strong>
+                <p>建议先选择 1 到 3 个高频商品，再运行推荐。</p>
+            </div>
+        </div>
+        <div class="inline-fields">
+            <div>
+            <label class="field-label" for="dataset">数据湖资产</label>
+                <select id="dataset" name="dataset">
+                    {% for dataset in datasets %}
+                    <option value="{{ dataset.id }}" {% if dataset.id == selected_dataset %}selected{% endif %}>{{ dataset.short }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="field-label" for="algorithm">算法</label>
+                <select id="algorithm" name="algorithm">
+                    {% for key, item in algorithms.items() %}
+                    <option value="{{ key }}" {% if key == selected_algorithm %}selected{% endif %}>{{ item.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="inline-fields">
+            <div>
+                <label class="field-label" for="min_support">min_support</label>
+                <input id="min_support" name="min_support" type="number" min="0.01" max="1" step="0.01" value="{{ "%.2f"|format(min_support) }}">
+            </div>
+            <div>
+                <label class="field-label" for="min_confidence">min_confidence</label>
+                <input id="min_confidence" name="min_confidence" type="number" min="0.01" max="1" step="0.05" value="{{ "%.2f"|format(min_confidence) }}">
+            </div>
+        </div>
+        <div>
+            <label class="field-label" for="max_transactions">最多交易数</label>
+            <input id="max_transactions" name="max_transactions" type="number" min="20" max="2000" value="{{ max_transactions }}">
+        </div>
+        <div>
+            <label class="field-label" for="basket">手动输入购物篮</label>
+            <input id="basket" name="basket" type="text" placeholder="例如：WHITE HANGING HEART T-LIGHT HOLDER, JUMBO BAG RED RETROSPOT">
+        </div>
+        <div class="item-chip-grid">
+            {% for item in item_choices %}
+            <label class="item-chip {% if item.name in selected_items %}active{% endif %}">
+                <input type="checkbox" name="items" value="{{ item.name }}" {% if item.name in selected_items %}checked{% endif %}>
+                <span>{{ item.name }}</span>
+                <small>{{ item.support|percent }}</small>
+            </label>
+            {% endfor %}
+        </div>
+        <button class="btn primary full" type="submit">生成推荐</button>
+    </form>
+
+    <aside class="console-side">
+        {# 右侧展示当前购物篮和本次规则挖掘摘要。 #}
+        <article class="glass-panel">
+            <span class="hud-label">CURRENT BASKET</span>
+            <h2>当前购物篮</h2>
+            <div class="selected-item-list">
+                {% for item in selected_items %}
+                <span>{{ item }}</span>
+                {% else %}
+                <p>请选择商品或手动输入购物篮。</p>
+                {% endfor %}
+            </div>
+        </article>
+        {% if run_summary %}
+        <article class="glass-panel">
+            <span class="hud-label">RUN SUMMARY</span>
+            <h2>{{ run_summary.name }}</h2>
+            <div class="mini-stats">
+                <div><span>耗时</span><strong>{{ "%.2f"|format(run_summary.elapsed_ms) }} ms</strong></div>
+                <div><span>项集</span><strong>{{ run_summary.frequent_count }}</strong></div>
+                <div><span>规则</span><strong>{{ run_summary.rules_count }}</strong></div>
+            </div>
+        </article>
+        {% endif %}
+    </aside>
+</section>
+
+{# 推荐结果表：每条推荐都展示 support、confidence、lift 和推荐分。 #}
+<section class="glass-panel table-card">
+    <div class="table-heading">
+        <div>
+            <span class="hud-label">RECOMMENDATIONS</span>
+            <h2>推荐结果</h2>
+        </div>
+        <button class="btn mini" type="button" data-export-table="recommend-table" data-export-name="recommendations.csv">导出 CSV</button>
+    </div>
+    <div class="table-wrap">
+        <table class="data-table sticky-table" id="recommend-table">
+            <thead>
+                <tr>
+                    <th data-sortable>推荐商品</th>
+                    <th data-sortable>依据前件</th>
+                    <th data-sortable>匹配类型</th>
+                    <th data-sortable data-type="number">support</th>
+                    <th data-sortable data-type="number">confidence</th>
+                    <th data-sortable data-type="number">lift</th>
+                    <th data-sortable data-type="number">推荐分</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in recommendations %}
+                <tr>
+                    <td>{{ row.consequent|items }}</td>
+                    <td>{{ row.antecedent|items }}</td>
+                    <td>{{ row.match_type }}</td>
+                    <td data-value="{{ row.support }}">{{ row.support|percent }}</td>
+                    <td data-value="{{ row.confidence }}">{{ row.confidence|percent }}</td>
+                    <td data-value="{{ row.lift }}">{{ "%.2f"|format(row.lift) }}</td>
+                    <td data-value="{{ row.score }}">
+                        <div class="score-cell"><i style="--w: {{ row.width }}%"></i><strong>{{ "%.2f"|format(row.score) }}</strong></div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="empty-cell">还没有推荐结果。请选择商品后生成推荐；如果仍为空，可以降低 min_support 或 min_confidence。</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

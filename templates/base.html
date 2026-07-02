@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    {# 全站基础模板：所有页面共享 meta、CSS、侧边栏、顶部栏和脚本。 #}
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}关联规则挖掘工作台{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-frame">
+        {# 左侧导航用于进入数据湖、实验、对比、推荐、历史和项目档案。 #}
+        <aside class="app-sidebar" data-nav-links>
+            <a class="app-brand" href="{{ url_for('index') }}">
+                <span>AR</span>
+                <div>
+                    <strong>Rule Mining Lab</strong>
+                    <small>Mining Console</small>
+                </div>
+            </a>
+
+            <nav class="side-nav">
+                <a href="{{ url_for('index') }}"><span>01</span>工作台首页</a>
+                <a href="{{ url_for('algorithms_page') }}"><span>02</span>可视化教学</a>
+                <a href="{{ url_for('dataset_page') }}"><span>03</span>数据湖</a>
+                <a href="{{ url_for('experiment_page') }}"><span>04</span>实验控制台</a>
+                <a href="{{ url_for('compare_page') }}"><span>05</span>算法对比</a>
+                <a href="{{ url_for('recommender_page') }}"><span>06</span>推荐模拟器</a>
+                <a href="{{ url_for('history_page') }}"><span>07</span>历史中心</a>
+                <a href="{{ url_for('team_page') }}"><span>08</span>项目档案</a>
+            </nav>
+
+            <div class="sidebar-card">
+                <span>Project</span>
+                <strong>Apriori / FP-Growth / Eclat</strong>
+                <p>真实购物篮数据、规则挖掘、可视化分析和报告导出。</p>
+            </div>
+        </aside>
+
+        <div class="app-main">
+            {# 顶部栏保留高频操作入口，移动端可通过 nav-toggle 展开侧边栏。 #}
+            <header class="topbar">
+                <button class="nav-toggle" type="button" aria-label="展开导航" data-nav-toggle>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <div>
+                    <span class="topbar-kicker">Association Rule Mining</span>
+                    <strong>关联规则挖掘工作台</strong>
+                </div>
+                <div class="topbar-actions">
+                    <a href="{{ url_for('experiment_page') }}">运行实验</a>
+                    <a href="{{ url_for('compare_page') }}">算法对比</a>
+                    <a href="{{ url_for('recommender_page') }}">推荐模拟</a>
+                    <a href="{{ url_for('team_page') }}">项目档案</a>
+                </div>
+            </header>
+
+            <main class="page-shell">
+                {# 每个具体页面把主体内容填充到 content block。 #}
+                {% block content %}{% endblock %}
+            </main>
+
+            <footer class="site-footer">
+                <span>Rule Mining Lab</span>
+                <span>Association Rule Mining</span>
+            </footer>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}小组成员 - 关联规则挖掘工作台{% endblock %}
+
+{% block content %}
+{# 项目档案页：唯一展示成员信息的页面，内容来自 config/team.toml。 #}
+<section class="page-hero team-hero">
+    <div>
+        <span class="hud-label">TEAM PROFILE</span>
+        <h1>{{ team.group.name }}</h1>
+        <p>{{ team.group.description }}</p>
+        <div class="hero-actions">
+            <a class="btn primary" href="{{ url_for('experiment_page') }}">进入实验控制台</a>
+            <a class="btn secondary" href="{{ url_for('algorithms_page') }}">查看算法教学</a>
+        </div>
+    </div>
+    <aside class="team-summary-panel">
+        <span>{{ team.group.course }}</span>
+        <strong>{{ team.group.project_name }}</strong>
+        <small>{{ team.group.subtitle }}</small>
+        <div class="team-summary-stats">
+            <div><span>成员</span><strong>{{ team.members|length }}</strong></div>
+            <div><span>模块</span><strong>{{ team.modules|length }}</strong></div>
+            <div><span>阶段</span><strong>{{ team.milestones|length }}</strong></div>
+        </div>
+    </aside>
+</section>
+
+{# 成员信息与职责卡片。 #}
+<section class="section-head">
+    <div>
+        <span class="eyebrow">Members</span>
+        <h2>成员信息与职责</h2>
+    </div>
+    <span class="config-note">配置来源：config/team.toml</span>
+</section>
+
+<section class="member-grid">
+    {% for member in team.members %}
+    <article class="member-card">
+        <div class="member-head">
+            <span class="member-avatar">{{ member.avatar }}</span>
+            <div>
+                <h2>{{ member.name }}</h2>
+                <p>{{ member.student_id }}</p>
+            </div>
+        </div>
+        <div class="member-role">{{ member.role }}</div>
+        {% if member.contact %}
+        <p class="member-contact">{{ member.contact }}</p>
+        {% endif %}
+        <ul class="responsibility-list">
+            {% for item in member.responsibility %}
+            <li>{{ item }}</li>
+            {% endfor %}
+        </ul>
+    </article>
+    {% endfor %}
+</section>
+
+{# 项目模块分工。 #}
+<section class="section-head">
+    <div>
+        <span class="eyebrow">Modules</span>
+        <h2>项目模块分工</h2>
+    </div>
+</section>
+
+<section class="module-grid">
+    {% for module in team.modules %}
+    <article class="module-card">
+        <div>
+            <span class="status-pill">{{ module.status }}</span>
+            <h3>{{ module.name }}</h3>
+        </div>
+        <p>{{ module.description }}</p>
+        <small>负责人：{{ module.owner }}</small>
+    </article>
+    {% endfor %}
+</section>
+
+{# 项目阶段进度。 #}
+<section class="glass-panel timeline-panel">
+    <div class="panel-heading">
+        <div>
+            <span class="hud-label">Progress</span>
+            <h2>项目完成进度</h2>
+        </div>
+    </div>
+    <div class="timeline-list">
+        {% for item in team.milestones %}
+        <div class="timeline-item">
+            <span>{{ item.date }}</span>
+            <strong>{{ item.title }}</strong>
+            <em>{{ item.status }}</em>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
