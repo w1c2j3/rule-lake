@@ -1858,6 +1858,76 @@ input[type="range"] {
     font-weight: 900;
 }
 
+.parameter-grid-panel {
+    overflow: hidden;
+}
+
+.grid-analysis-list {
+    display: grid;
+    gap: 8px;
+    margin: 8px 0 18px;
+}
+
+.grid-analysis-list p {
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface-2);
+    color: var(--muted);
+}
+
+.parameter-grid-table {
+    display: grid;
+    grid-template-columns: 160px repeat(5, minmax(132px, 1fr));
+    gap: 8px;
+    overflow-x: auto;
+}
+
+.grid-head,
+.grid-support,
+.grid-cell {
+    min-width: 132px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+}
+
+.grid-head,
+.grid-support {
+    padding: 12px;
+    background: var(--surface-2);
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 950;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.support-head {
+    min-width: 160px;
+}
+
+.grid-cell {
+    position: relative;
+    display: grid;
+    gap: 4px;
+    padding: 12px;
+    overflow: hidden;
+    background:
+        linear-gradient(90deg, rgba(37, 99, 235, 0.24) var(--heat), transparent var(--heat)),
+        var(--surface);
+}
+
+.grid-cell strong {
+    color: var(--text);
+    font-size: 1.25rem;
+}
+
+.grid-cell span,
+.grid-cell small {
+    color: var(--muted);
+}
+
 .table-toolbar {
     display: flex;
     gap: 12px;

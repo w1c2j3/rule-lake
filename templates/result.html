@@ -11,6 +11,7 @@
         <p>{{ algorithm_tagline }}</p>
     </div>
     <div class="run-params">
+        <span>run_id <strong>{{ run_id }}</strong></span>
         <span>min_support <strong>{{ min_support|percent }}</strong></span>
         <span>min_confidence <strong>{{ min_confidence|percent }}</strong></span>
         <span>耗时 <strong>{{ "%.2f"|format(elapsed_ms) }} ms</strong></span>
@@ -23,6 +24,7 @@
     data-history-payload='{{ {
         "algorithm": algorithm_name,
         "algorithm_key": algorithm_key,
+        "run_id": run_id,
         "dataset": dataset_label,
         "dataset_id": history_dataset_id,
         "support": min_support|percent,
@@ -38,7 +40,18 @@
     <button class="btn primary" type="button" data-print-report>打印/导出报告</button>
     <button class="btn glass" type="button" data-copy-report>复制 Markdown 报告</button>
     <button class="btn glass" type="button" data-save-history>保存到实验历史</button>
+    <a class="btn glass" href="{{ url_for('run_record_page', run_id=run_id) }}">打开后端记录</a>
+    <a class="btn glass" href="{{ url_for('history_page') }}">实验历史中心</a>
     <a class="btn glass" href="{{ url_for('experiment_page') }}">返回控制台</a>
+</section>
+
+<section class="glass-panel source-card run-archive-card">
+    <span class="hud-label">RUN ARCHIVE</span>
+    <h2>后端实验档案</h2>
+    <p>
+        本次实验编号为 <strong>{{ run_id }}</strong>，创建时间 {{ created_at }}。
+        {% if server_record %}当前页面来自服务器保存的历史记录。{% else %}结果已经写入服务器端 JSON 记录，可在历史中心再次打开。{% endif %}
+    </p>
 </section>
 
 <section class="metric-rail result-metrics">
@@ -171,6 +184,40 @@
             </div>
             <em>{{ "%.2f"|format(row.elapsed_ms) }} ms</em>
         </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if parameter_grid and parameter_grid.matrix %}
+{# 二维参数网格扫描：展示 support 和 confidence 同时变化时的规则数量、耗时和 lift。 #}
+<section class="glass-panel chart-panel parameter-grid-panel">
+    <div class="panel-heading">
+        <div>
+            <span class="hud-label">PARAMETER GRID</span>
+            <h2>二维参数扫描引擎</h2>
+        </div>
+        <span class="table-count">{{ parameter_grid.cells|length }} 组实验 / {{ parameter_grid.sample_size }} 条交易</span>
+    </div>
+    <div class="grid-analysis-list">
+        {% for item in grid_analysis %}
+        <p>{{ item }}</p>
+        {% endfor %}
+    </div>
+    <div class="parameter-grid-table" style="grid-template-columns: 160px repeat({{ parameter_grid.confidences|length }}, minmax(132px, 1fr));">
+        <div class="grid-head support-head">support \ confidence</div>
+        {% for confidence in parameter_grid.confidences %}
+        <div class="grid-head">{{ "%.2f"|format(confidence) }}</div>
+        {% endfor %}
+        {% for row in parameter_grid.matrix %}
+        <div class="grid-support">{{ "%.2f"|format(row.support) }}</div>
+        {% for cell in row.cells %}
+        <div class="grid-cell" style="--heat: {{ cell.rules_width }}%">
+            <strong>{{ cell.rules_count }}</strong>
+            <span>{{ cell.frequent_count }} 项集</span>
+            <small>{{ "%.1f"|format(cell.elapsed_ms) }} ms / lift {{ "%.2f"|format(cell.best_lift) }}</small>
+        </div>
+        {% endfor %}
         {% endfor %}
     </div>
 </section>

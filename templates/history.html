@@ -8,11 +8,11 @@
     <div>
         <span class="hud-label">EXPERIMENT HISTORY</span>
         <h1>实验历史中心</h1>
-        <p>集中查看本浏览器保存过的实验记录，支持导出 JSON、复制摘要、重新运行内置数据湖实验。</p>
+        <p>集中查看服务器保存的实验档案和本浏览器本地历史，支持打开详情、导出、复制摘要和重新运行。</p>
     </div>
     <div class="console-badge">
-        <span>LOCAL STORAGE</span>
-        <strong data-history-count>0 条记录</strong>
+        <span>SERVER RUNS</span>
+        <strong>{{ server_runs|length }} 条记录</strong>
     </div>
 </section>
 
@@ -22,6 +22,48 @@
     <button class="btn glass" type="button" data-export-history>导出历史 JSON</button>
     <button class="btn glass" type="button" data-copy-history>复制历史摘要</button>
     <button class="btn glass" type="button" data-clear-history>清空历史</button>
+</section>
+
+{# 服务器端记录来自 data/results/*.json，换浏览器后仍然存在。 #}
+<section class="glass-panel history-center-panel">
+    <div class="panel-heading">
+        <div>
+            <span class="hud-label">SERVER ARCHIVE</span>
+            <h2>服务器实验档案</h2>
+        </div>
+        <span class="table-count">{{ server_runs|length }} 条后端记录</span>
+    </div>
+    <div class="history-center-list">
+        {% for run in server_runs %}
+        <article class="history-run-card">
+            <div>
+                <span>#{{ run.run_id }} / {{ run.created_at }}</span>
+                <h3>{{ run.algorithm_name }} / {{ run.dataset_label }}</h3>
+                <p>
+                    support {{ run.min_support|percent }}，confidence {{ run.min_confidence|percent }}，
+                    {{ run.frequent_count }} 项集，{{ run.rules_count }} 规则，耗时 {{ "%.2f"|format(run.elapsed_ms) }} ms。
+                </p>
+                <p>代表规则：{{ run.best_rule_text }}，lift {{ "%.2f"|format(run.best_lift) }}</p>
+            </div>
+            <div class="history-run-actions">
+                <a class="btn mini primary" href="{{ url_for('run_record_page', run_id=run.run_id) }}">打开记录</a>
+                {% if run.max_transactions and run.history_dataset_id %}
+                <form action="{{ url_for('run_algorithm') }}" method="post">
+                    <input type="hidden" name="dataset_mode" value="builtin">
+                    <input type="hidden" name="builtin_dataset" value="{{ run.history_dataset_id }}">
+                    <input type="hidden" name="algorithm" value="{{ run.algorithm_key }}">
+                    <input type="hidden" name="min_support" value="{{ run.min_support }}">
+                    <input type="hidden" name="min_confidence" value="{{ run.min_confidence }}">
+                    <input type="hidden" name="max_transactions" value="{{ run.max_transactions }}">
+                    <button class="btn mini" type="submit">快速复跑</button>
+                </form>
+                {% endif %}
+            </div>
+        </article>
+        {% else %}
+        <p>暂无服务器实验档案。运行一次实验后，后端会自动写入 data/results/。</p>
+        {% endfor %}
+    </div>
 </section>
 
 {# 历史摘要指标由 JS 动态写入。 #}
@@ -52,8 +94,8 @@
 <section class="glass-panel history-center-panel">
     <div class="panel-heading">
         <div>
-            <span class="hud-label">RUN LIST</span>
-            <h2>历史实验记录</h2>
+        <span class="hud-label">RUN LIST</span>
+            <h2>浏览器本地历史</h2>
         </div>
         <span class="table-count">保存在当前浏览器</span>
     </div>

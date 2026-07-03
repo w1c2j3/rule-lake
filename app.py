@@ -10,14 +10,17 @@
 
 import csv
 import io
+import json
 import re
 import tomllib
+from collections import Counter
+from datetime import datetime
 from itertools import combinations
 from time import perf_counter
-from collections import Counter
+from uuid import uuid4
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, abort, jsonify, render_template, request
 
 from algorithms import apriori, eclat, fpgrowth
 
@@ -26,6 +29,7 @@ from algorithms import apriori, eclat, fpgrowth
 BASE_DIR = Path(__file__).resolve().parent
 DATA_PATH = BASE_DIR / "data" / "transactions.csv"
 DATASET_DIR = BASE_DIR / "data" / "datasets"
+RESULTS_DIR = BASE_DIR / "data" / "results"
 TEAM_CONFIG_PATH = BASE_DIR / "config" / "team.toml"
 DEFAULT_DATASET_ID = "uci_france"
 
@@ -777,6 +781,219 @@ def build_run_stages(algorithm_key, process_logs, frequent_itemsets, rules):
     return stages
 
 
+def utc_timestamp():
+    """生成记录文件使用的时间戳。
+
+    这里使用本机时间并格式化到秒，主要服务于课堂展示和服务器本地排查；
+    run_id 仍然由 uuid 生成，因此即使同一秒内多次运行也不会覆盖。
+    """
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def compact_rule(rule):
+    """把完整关联规则压缩成历史列表可直接展示的轻量结构。"""
+    if not rule:
+        return None
+    return {
+        "antecedent": rule["antecedent"],
+        "consequent": rule["consequent"],
+        "support": rule["support"],
+        "confidence": rule["confidence"],
+        "lift": rule["lift"],
+        "text": f"{join_items(rule['antecedent'])} -> {join_items(rule['consequent'])}",
+    }
+
+
+def summarize_algorithm_runs(run_results):
+    """把一次请求内的多算法结果压缩为模板展示需要的摘要列表。
+
+    run_algorithm_with_timing 返回值里包含完整频繁项集和规则；三算法对比卡片
+    只需要耗时、项集数、规则数和最高 lift，因此这里剥离大字段，减少保存记录
+    和模板渲染的负担。
+    """
+    return [
+        {
+            "key": key,
+            "name": run["name"],
+            "tagline": run["tagline"],
+            "elapsed_ms": run["elapsed_ms"],
+            "frequent_count": run["frequent_count"],
+            "rules_count": run["rules_count"],
+            "best_lift": run["best_lift"],
+            "best_confidence": run["best_confidence"],
+            "avg_confidence": run["avg_confidence"],
+            "avg_lift": run["avg_lift"],
+            "best_rule": compact_rule(run["best_rule"]),
+        }
+        for key, run in run_results.items()
+    ]
+
+
+def run_record_path(run_id):
+    """根据 run_id 生成实验记录 JSON 路径，并阻止路径穿越。"""
+    if not re.fullmatch(r"[0-9a-f]{12}", run_id or ""):
+        raise ValueError("实验记录编号格式不正确。")
+    return RESULTS_DIR / f"{run_id}.json"
+
+
+def save_run_record(record):
+    """把一次完整实验写入 data/results/run_id.json。"""
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    path = run_record_path(record["run_id"])
+    path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+    return path
+
+
+def load_run_record(run_id):
+    """读取单个后端实验记录，找不到时返回 None。"""
+    try:
+        path = run_record_path(run_id)
+    except ValueError:
+        return None
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def summarize_run_record(record):
+    """把完整实验记录转换成历史页展示用的摘要卡片。"""
+    best_rule = record.get("best_rule") or {}
+    parameters = record.get("parameters", {})
+    dataset = record.get("dataset", {})
+    result = record.get("result", {})
+    return {
+        "run_id": record.get("run_id", ""),
+        "created_at": record.get("created_at", ""),
+        "algorithm_key": record.get("algorithm_key", ""),
+        "algorithm_name": record.get("algorithm_name", ""),
+        "dataset_label": dataset.get("label", ""),
+        "history_dataset_id": dataset.get("history_dataset_id", ""),
+        "min_support": parameters.get("min_support", 0),
+        "min_confidence": parameters.get("min_confidence", 0),
+        "max_transactions": parameters.get("max_transactions", 0),
+        "elapsed_ms": record.get("elapsed_ms", 0),
+        "frequent_count": len(result.get("frequent_itemsets", [])),
+        "rules_count": len(result.get("rules", [])),
+        "best_rule_text": best_rule.get("text", "暂无规则"),
+        "best_lift": best_rule.get("lift", 0),
+    }
+
+
+def list_run_records(limit=40):
+    """按文件更新时间倒序列出后端实验记录摘要。"""
+    if not RESULTS_DIR.exists():
+        return []
+
+    records = []
+    paths = sorted(RESULTS_DIR.glob("*.json"), key=lambda path: path.stat().st_mtime, reverse=True)
+    for path in paths[:limit]:
+        try:
+            record = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        records.append(summarize_run_record(record))
+    return records
+
+
+def build_run_record(
+    run_id,
+    created_at,
+    algorithm_key,
+    selected_run,
+    dataset_label,
+    history_dataset_id,
+    max_transactions,
+    min_support,
+    min_confidence,
+    stats,
+    result,
+    process_logs,
+    analysis,
+    result_visuals,
+    run_stages,
+    comparison,
+    dataset_comparison,
+    threshold_sweep,
+    parameter_grid,
+    grid_analysis,
+):
+    """组装一次实验的完整后端记录。
+
+    记录中保留完整频繁项集和关联规则，目的是让历史详情页不重新计算也能打开；
+    同时保存参数、数据集摘要、过程日志、图表数据和扫描结果，便于后续导出报告。
+    """
+    best_rule = max(result["rules"], key=lambda rule: (rule["lift"], rule["confidence"], rule["support"]), default=None)
+    return {
+        "run_id": run_id,
+        "created_at": created_at,
+        "algorithm_key": algorithm_key,
+        "algorithm_name": selected_run["name"],
+        "algorithm_tagline": selected_run["tagline"],
+        "elapsed_ms": selected_run["elapsed_ms"],
+        "best_rule": compact_rule(best_rule),
+        "parameters": {
+            "min_support": min_support,
+            "min_confidence": min_confidence,
+            "max_transactions": max_transactions,
+        },
+        "dataset": {
+            "label": dataset_label,
+            "history_dataset_id": history_dataset_id,
+            "stats": stats,
+        },
+        "result": {
+            "frequent_itemsets": result["frequent_itemsets"],
+            "rules": result["rules"],
+            "process_logs": process_logs,
+            "analysis": analysis,
+            "visuals": result_visuals,
+            "stages": run_stages,
+        },
+        "comparison": comparison,
+        "dataset_comparison": dataset_comparison,
+        "threshold_sweep": threshold_sweep,
+        "parameter_grid": parameter_grid,
+        "grid_analysis": grid_analysis,
+    }
+
+
+def render_result_from_record(record):
+    """把保存过的后端实验记录重新渲染为结果详情页。"""
+    parameters = record["parameters"]
+    dataset = record["dataset"]
+    result = record["result"]
+    return render_template(
+        "result.html",
+        run_id=record["run_id"],
+        server_record=True,
+        created_at=record["created_at"],
+        algorithm_key=record["algorithm_key"],
+        algorithm_name=record["algorithm_name"],
+        algorithm_tagline=record["algorithm_tagline"],
+        elapsed_ms=record["elapsed_ms"],
+        min_support=parameters["min_support"],
+        min_confidence=parameters["min_confidence"],
+        frequent_itemsets=result["frequent_itemsets"],
+        rules=result["rules"],
+        process_logs=result["process_logs"],
+        analysis=result["analysis"],
+        stats=dataset["stats"],
+        dataset_label=dataset["label"],
+        history_dataset_id=dataset.get("history_dataset_id", ""),
+        max_transactions=parameters["max_transactions"],
+        comparison=record.get("comparison", []),
+        result_visuals=result["visuals"],
+        run_stages=result["stages"],
+        dataset_comparison=record.get("dataset_comparison", []),
+        threshold_sweep=record.get("threshold_sweep", []),
+        parameter_grid=record.get("parameter_grid", {}),
+        grid_analysis=record.get("grid_analysis", []),
+    )
+
+
 def run_dataset_comparison(algorithm_key, min_support, min_confidence, max_transactions):
     """在所有内置数据湖资产上运行同一算法，生成跨资产对比表。"""
     comparison = []
@@ -802,14 +1019,20 @@ def run_dataset_comparison(algorithm_key, min_support, min_confidence, max_trans
 
 
 def run_threshold_sweep(algorithm_key, transactions, min_confidence):
-    """固定置信度，扫描多组支持度，观察规则数量变化。"""
-    sweep_supports = [0.02, 0.03, 0.05, 0.08, 0.10, 0.15]
+    """固定置信度，扫描多组支持度，观察规则数量变化。
+
+    扫描用于页面交互演示，不追求离线全量穷举；最多取前 120 条交易，
+    避免低支持度组合在课堂展示时生成过多规则导致页面等待过久。
+    """
+    sweep_transactions = transactions[:120]
+    sweep_supports = [0.06, 0.08, 0.10, 0.12, 0.15, 0.20]
     rows = []
     for support in sweep_supports:
-        run = run_algorithm_with_timing(algorithm_key, transactions, support, min_confidence)
+        run = run_algorithm_with_timing(algorithm_key, sweep_transactions, support, min_confidence)
         rows.append(
             {
                 "support": support,
+                "sample_size": len(sweep_transactions),
                 "elapsed_ms": run["elapsed_ms"],
                 "frequent_count": run["frequent_count"],
                 "rules_count": run["rules_count"],
@@ -822,6 +1045,95 @@ def run_threshold_sweep(algorithm_key, transactions, min_confidence):
         row["rules_width"] = round((row["rules_count"] / max_rules) * 100, 2) if max_rules else 0
         row["itemsets_width"] = round((row["frequent_count"] / max_itemsets) * 100, 2) if max_itemsets else 0
     return rows
+
+
+def run_parameter_grid(algorithm_key, transactions):
+    """执行 support × confidence 二维参数网格实验。
+
+    这个函数是“训练/实验引擎”的核心增强版：它不会只跑用户当前的一组阈值，
+    而是在同一数据集和同一算法下扫描多组阈值组合，从而观察：
+    - support 越低时频繁项集和规则数量如何变化；
+    - confidence 越高时规则筛选有多严格；
+    - 哪些参数组合能得到高 lift 规则，哪些组合运行更快。
+    """
+    grid_transactions = transactions[:120]
+    support_values = [0.08, 0.10, 0.12, 0.15]
+    confidence_values = [0.40, 0.60, 0.80]
+    cells = []
+
+    for support in support_values:
+        for confidence in confidence_values:
+            run = run_algorithm_with_timing(algorithm_key, grid_transactions, support, confidence)
+            cells.append(
+                {
+                    "support": support,
+                    "confidence": confidence,
+                    "elapsed_ms": run["elapsed_ms"],
+                    "frequent_count": run["frequent_count"],
+                    "rules_count": run["rules_count"],
+                    "best_lift": run["best_lift"],
+                    "best_confidence": run["best_confidence"],
+                }
+            )
+
+    max_rules = max((cell["rules_count"] for cell in cells), default=1)
+    max_elapsed = max((cell["elapsed_ms"] for cell in cells), default=1)
+    max_lift = max((cell["best_lift"] for cell in cells), default=1)
+    for cell in cells:
+        # 三个 width 字段分别服务于页面上的热力块、耗时条和 lift 强度条。
+        cell["rules_width"] = round((cell["rules_count"] / max_rules) * 100, 2) if max_rules else 0
+        cell["elapsed_width"] = round((cell["elapsed_ms"] / max_elapsed) * 100, 2) if max_elapsed else 0
+        cell["lift_width"] = round((cell["best_lift"] / max_lift) * 100, 2) if max_lift else 0
+
+    matrix = [
+        {
+            "support": support,
+            "cells": [cell for cell in cells if cell["support"] == support],
+        }
+        for support in support_values
+    ]
+
+    return {
+        "supports": support_values,
+        "confidences": confidence_values,
+        "sample_size": len(grid_transactions),
+        "cells": cells,
+        "matrix": matrix,
+        "best_by_rules": max(cells, key=lambda cell: cell["rules_count"], default=None),
+        "best_by_lift": max(cells, key=lambda cell: cell["best_lift"], default=None),
+        "fastest": min(cells, key=lambda cell: cell["elapsed_ms"], default=None),
+    }
+
+
+def build_grid_analysis(parameter_grid):
+    """根据二维参数扫描结果生成可直接汇报的分析句子。"""
+    if not parameter_grid:
+        return []
+
+    analysis = []
+    best_by_rules = parameter_grid.get("best_by_rules")
+    best_by_lift = parameter_grid.get("best_by_lift")
+    fastest = parameter_grid.get("fastest")
+
+    if best_by_rules:
+        analysis.append(
+            f"规则数量最多的组合是 support={best_by_rules['support']:.2f}、"
+            f"confidence={best_by_rules['confidence']:.2f}，得到 {best_by_rules['rules_count']} 条规则，"
+            "适合做探索性分析。"
+        )
+    if best_by_lift:
+        analysis.append(
+            f"最高 lift 出现在 support={best_by_lift['support']:.2f}、"
+            f"confidence={best_by_lift['confidence']:.2f}，lift={best_by_lift['best_lift']:.2f}，"
+            "适合挑选强相关规则。"
+        )
+    if fastest:
+        analysis.append(
+            f"耗时最低的组合是 support={fastest['support']:.2f}、"
+            f"confidence={fastest['confidence']:.2f}，耗时 {fastest['elapsed_ms']:.2f} ms，"
+            "通常更适合课堂快速演示。"
+        )
+    return analysis
 
 
 def run_algorithm_with_timing(algorithm_key, transactions, min_support, min_confidence):
@@ -1017,8 +1329,17 @@ def team_page():
 
 @app.route("/history")
 def history_page():
-    """实验历史中心：前端从 localStorage 渲染历史记录。"""
-    return render_template("history.html")
+    """实验历史中心：同时展示浏览器本地历史和服务器后端记录。"""
+    return render_template("history.html", server_runs=list_run_records())
+
+
+@app.route("/history/<run_id>")
+def run_record_page(run_id):
+    """后端实验记录详情页：读取 JSON 记录并复用结果页模板展示。"""
+    record = load_run_record(run_id)
+    if not record:
+        abort(404)
+    return render_result_from_record(record)
 
 
 @app.route("/compare")
@@ -1176,12 +1497,50 @@ def run_algorithm():
     run_stages = build_run_stages(algorithm_key, result["process_logs"], result["frequent_itemsets"], result["rules"])
     dataset_comparison = run_dataset_comparison(algorithm_key, min_support, min_confidence, max_transactions) if compare_datasets else []
     threshold_sweep = run_threshold_sweep(algorithm_key, transactions, min_confidence) if sweep_thresholds else []
+    parameter_grid = run_parameter_grid(algorithm_key, transactions) if sweep_thresholds else {}
+    grid_analysis = build_grid_analysis(parameter_grid)
     process_logs = list(result["process_logs"])
     if limit_note:
         process_logs.insert(0, limit_note)
+    if parameter_grid:
+        process_logs.append(
+            f"参数网格扫描采用交互演示模式：使用前 {parameter_grid['sample_size']} 条交易，"
+            f"扫描 {len(parameter_grid['cells'])} 组 support × confidence 组合。"
+        )
+    run_id = uuid4().hex[:12]
+    created_at = utc_timestamp()
+    stats = dataset_stats(rows)
+    comparison = summarize_algorithm_runs(run_results) if compare_algorithms else []
+    process_logs.append(f"后端实验记录已保存为 run_id={run_id}，可在实验历史中心长期查看。")
+    run_record = build_run_record(
+        run_id=run_id,
+        created_at=created_at,
+        algorithm_key=algorithm_key,
+        selected_run=selected_run,
+        dataset_label=dataset_label,
+        history_dataset_id=history_dataset_id,
+        max_transactions=max_transactions,
+        min_support=min_support,
+        min_confidence=min_confidence,
+        stats=stats,
+        result=result,
+        process_logs=process_logs,
+        analysis=analysis,
+        result_visuals=result_visuals,
+        run_stages=run_stages,
+        comparison=comparison,
+        dataset_comparison=dataset_comparison,
+        threshold_sweep=threshold_sweep,
+        parameter_grid=parameter_grid,
+        grid_analysis=grid_analysis,
+    )
+    save_run_record(run_record)
 
     return render_template(
         "result.html",
+        run_id=run_id,
+        server_record=False,
+        created_at=created_at,
         algorithm_key=algorithm_key,
         algorithm_name=selected_run["name"],
         algorithm_tagline=selected_run["tagline"],
@@ -1192,15 +1551,17 @@ def run_algorithm():
         rules=result["rules"],
         process_logs=process_logs,
         analysis=analysis,
-        stats=dataset_stats(rows),
+        stats=stats,
         dataset_label=dataset_label,
         history_dataset_id=history_dataset_id,
         max_transactions=max_transactions,
-        comparison=list(run_results.values()) if compare_algorithms else [],
+        comparison=comparison,
         result_visuals=result_visuals,
         run_stages=run_stages,
         dataset_comparison=dataset_comparison,
         threshold_sweep=threshold_sweep,
+        parameter_grid=parameter_grid,
+        grid_analysis=grid_analysis,
     )
 
 

@@ -17,3 +17,6 @@ node_modules/
 # Converted real datasets under data/datasets/ and data/transactions.csv are committed.
 data/online_retail.zip
 data/raw/
+
+# Server-side experiment records are runtime artifacts.
+data/results/
