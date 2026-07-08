@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_item_display.html" as item_display with context %}
 
 {% block title %}商品推荐模拟器 - 关联规则挖掘工作台{% endblock %}
 
@@ -59,12 +60,21 @@
             <label class="field-label" for="basket">手动输入购物篮</label>
             <input id="basket" name="basket" type="text" placeholder="例如：WHITE HANGING HEART T-LIGHT HOLDER, JUMBO BAG RED RETROSPOT">
         </div>
-        <div class="item-chip-grid">
+        <div class="item-picker-toolbar">
+            <label class="field-label" for="item_search">高频商品候选</label>
+            <div class="item-picker-actions">
+                <input id="item_search" type="search" placeholder="搜索商品名称或中文注释" data-item-search>
+                <button class="btn mini" type="button" data-clear-item-selection>清空已选</button>
+            </div>
+            <p><span data-selected-item-count>{{ selected_items|length }}</span> 个商品已勾选，点击商品卡片即可加入当前购物篮。</p>
+        </div>
+        <div class="item-chip-grid" data-item-chip-grid>
             {% for item in item_choices %}
-            <label class="item-chip {% if item.name in selected_items %}active{% endif %}">
+            <label class="item-chip {% if item.name in selected_items %}active{% endif %}" data-item-chip data-item-search-text="{{ (item.name ~ ' ' ~ item_translation(item.name))|lower }}">
                 <input type="checkbox" name="items" value="{{ item.name }}" {% if item.name in selected_items %}checked{% endif %}>
-                <span>{{ item.name }}</span>
-                <small>{{ item.support|percent }}</small>
+                <span class="item-chip-check" aria-hidden="true"></span>
+                <span class="item-chip-name">{{ item_display.item_label(item.name) }}</span>
+                <small>{{ item.support|percent }} 支持度</small>
             </label>
             {% endfor %}
         </div>
@@ -72,15 +82,20 @@
     </form>
 
     <aside class="console-side">
-        {# 右侧展示当前购物篮和本次规则挖掘摘要。 #}
-        <article class="glass-panel">
-            <span class="hud-label">CURRENT BASKET</span>
-            <h2>当前购物篮</h2>
-            <div class="selected-item-list">
+        {# 右侧展示推荐模拟器教程、原理和本次规则挖掘摘要。 #}
+        <article class="glass-panel recommender-guide">
+            <span class="hud-label">HOW IT WORKS</span>
+            <h2>使用教程及原理</h2>
+            <div class="step-stack">
+                <div><strong>01</strong><span>先选择数据湖、算法和阈值，再勾选 1 到 3 个高频商品。</span></div>
+                <div><strong>02</strong><span>系统运行关联规则，查找“当前购物篮包含规则前件”的候选。</span></div>
+                <div><strong>03</strong><span>推荐分综合 confidence、lift 和 support，优先展示更稳定、更相关的商品。</span></div>
+            </div>
+            <div class="selected-item-list guide-selected-items" data-selected-item-list data-empty-text="当前未选择商品。勾选商品后这里会显示本次输入。">
                 {% for item in selected_items %}
-                <span>{{ item }}</span>
+                <span data-selected-item="{{ item }}">{{ item_display.item_label(item, true) }}</span>
                 {% else %}
-                <p>请选择商品或手动输入购物篮。</p>
+                <p>当前未选择商品。勾选商品后这里会显示本次输入。</p>
                 {% endfor %}
             </div>
         </article>
@@ -123,8 +138,8 @@
             <tbody>
                 {% for row in recommendations %}
                 <tr>
-                    <td>{{ row.consequent|items }}</td>
-                    <td>{{ row.antecedent|items }}</td>
+                    <td>{{ item_display.item_list(row.consequent, true) }}</td>
+                    <td>{{ item_display.item_list(row.antecedent, true) }}</td>
                     <td>{{ row.match_type }}</td>
                     <td data-value="{{ row.support }}">{{ row.support|percent }}</td>
                     <td data-value="{{ row.confidence }}">{{ row.confidence|percent }}</td>

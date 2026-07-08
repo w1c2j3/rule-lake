@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_item_display.html" as item_display with context %}
 
 {% block title %}Result - 关联规则挖掘算法课程网站{% endblock %}
 
@@ -234,7 +235,7 @@
             {% for row in result_visuals.top_itemsets %}
             <div class="bar-row">
                 <div>
-                    <strong>{{ row["items"]|items }}</strong>
+                    <strong>{{ item_display.item_list(row["items"], true) }}</strong>
                     <span>{{ row.support|percent }}</span>
                 </div>
                 <i style="--w: {{ row.width }}%"></i>
@@ -256,7 +257,7 @@
         <div class="rule-radar">
             {% for row in result_visuals.top_rules %}
             <div class="rule-radar-row">
-                <span>{{ row.antecedent|items }} -> {{ row.consequent|items }}</span>
+                <span>{{ item_display.item_list(row.antecedent, true) }} -> {{ item_display.item_list(row.consequent, true) }}</span>
                 <i style="--w: {{ row.width }}%"></i>
                 <strong>{{ "%.2f"|format(row.lift) }}</strong>
             </div>
@@ -326,7 +327,7 @@
             <tbody>
                 {% for row in frequent_itemsets %}
                 <tr>
-                    <td>{{ row["items"]|items }}</td>
+                    <td>{{ item_display.item_list(row["items"], true) }}</td>
                     <td data-value="{{ row.support }}">{{ row.support|percent }}</td>
                 </tr>
                 {% else %}
@@ -375,8 +376,8 @@
                     <td class="favorite-cell">
                         <button class="favorite-rule-btn" type="button" data-favorite-rule aria-label="收藏规则">+</button>
                     </td>
-                    <td>{{ row.antecedent|items }}</td>
-                    <td>{{ row.consequent|items }}</td>
+                    <td>{{ item_display.item_list(row.antecedent, true) }}</td>
+                    <td>{{ item_display.item_list(row.consequent, true) }}</td>
                     <td data-value="{{ row.support }}">{{ row.support|percent }}</td>
                     <td data-value="{{ row.confidence }}">{{ row.confidence|percent }}</td>
                     <td data-value="{{ row.lift }}">{{ "%.2f"|format(row.lift) }}</td>

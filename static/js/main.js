@@ -138,6 +138,87 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
+    // 推荐模拟器商品勾选：同步卡片状态、已选数量、右侧购物篮预览和候选搜索。
+    const itemChips = Array.from(document.querySelectorAll("[data-item-chip]"));
+    const selectedItemCount = document.querySelector("[data-selected-item-count]");
+    const selectedItemList = document.querySelector("[data-selected-item-list]");
+    const itemSearch = document.querySelector("[data-item-search]");
+    const clearItemSelection = document.querySelector("[data-clear-item-selection]");
+
+    const renderSelectedItems = () => {
+        if (!selectedItemList) {
+            return;
+        }
+
+        const selected = itemChips
+            .filter((chip) => chip.querySelector('input[type="checkbox"]')?.checked)
+            .map((chip) => ({
+                value: chip.querySelector('input[type="checkbox"]').value,
+                label: chip.querySelector(".item-chip-name")?.textContent.trim() || chip.textContent.trim(),
+            }));
+
+        selectedItemList.replaceChildren();
+        if (!selected.length) {
+            const empty = document.createElement("p");
+            empty.textContent = selectedItemList.dataset.emptyText || "当前未选择商品。";
+            selectedItemList.appendChild(empty);
+        } else {
+            selected.forEach((item) => {
+                const badge = document.createElement("span");
+                badge.dataset.selectedItem = item.value;
+                badge.textContent = item.label;
+                selectedItemList.appendChild(badge);
+            });
+        }
+
+        if (selectedItemCount) {
+            selectedItemCount.textContent = String(selected.length);
+        }
+    };
+
+    const syncItemChip = (chip) => {
+        const checkbox = chip.querySelector('input[type="checkbox"]');
+        if (!checkbox) {
+            return;
+        }
+        chip.classList.toggle("active", checkbox.checked);
+    };
+
+    itemChips.forEach((chip) => {
+        const checkbox = chip.querySelector('input[type="checkbox"]');
+        if (!checkbox) {
+            return;
+        }
+        checkbox.addEventListener("change", () => {
+            syncItemChip(chip);
+            renderSelectedItems();
+        });
+        syncItemChip(chip);
+    });
+    renderSelectedItems();
+
+    if (itemSearch) {
+        itemSearch.addEventListener("input", () => {
+            const keyword = itemSearch.value.trim().toLowerCase();
+            itemChips.forEach((chip) => {
+                chip.hidden = Boolean(keyword) && !(chip.dataset.itemSearchText || "").includes(keyword);
+            });
+        });
+    }
+
+    if (clearItemSelection) {
+        clearItemSelection.addEventListener("click", () => {
+            itemChips.forEach((chip) => {
+                const checkbox = chip.querySelector('input[type="checkbox"]');
+                if (checkbox) {
+                    checkbox.checked = false;
+                    syncItemChip(chip);
+                }
+            });
+            renderSelectedItems();
+        });
+    }
+
     // 通用表格过滤器：支持搜索文本、规则页 lift/confidence 阈值过滤。
     const filterTable = (tableId) => {
         const table = document.getElementById(tableId);
@@ -215,6 +296,139 @@ document.addEventListener("DOMContentLoaded", () => {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+
+    // 前端预览接口返回的是纯 JSON，这里复用后端注入的商品词典并做兜底生成。
+    const itemTranslations = window.ruleLakeItemTranslations || {};
+    const itemTokenTranslations = {
+        red: "红色",
+        green: "绿色",
+        blue: "蓝色",
+        pink: "粉色",
+        white: "白色",
+        black: "黑色",
+        ivory: "象牙色",
+        vintage: "复古",
+        retrospot: "复古圆点",
+        woodland: "森林图案",
+        spaceboy: "太空男孩",
+        dolly: "娃娃",
+        girl: "女孩",
+        bag: "袋",
+        bags: "袋",
+        jumbo: "大号",
+        lunch: "午餐",
+        box: "盒",
+        boxes: "盒",
+        case: "盒",
+        cases: "盒",
+        set: "套装",
+        pack: "包装",
+        paper: "纸",
+        napkins: "餐巾纸",
+        cups: "杯",
+        plates: "盘",
+        cake: "蛋糕",
+        cakes: "蛋糕",
+        tea: "茶",
+        coffee: "咖啡",
+        mug: "马克杯",
+        ceramic: "陶瓷",
+        tin: "铁盒",
+        tins: "铁盒",
+        heart: "爱心",
+        hearts: "爱心",
+        hot: "热",
+        water: "水",
+        bottle: "瓶",
+        holder: "架",
+        light: "灯",
+        night: "夜灯",
+        card: "卡片",
+        cards: "卡片",
+        christmas: "圣诞",
+        kitchen: "厨房",
+        pantry: "厨房",
+        apple: "苹果",
+        apples: "苹果",
+        strawberry: "草莓",
+        fruit: "水果",
+        vegetable: "蔬菜",
+        vegetables: "蔬菜",
+        milk: "牛奶",
+        cheese: "奶酪",
+        bread: "面包",
+        meat: "肉类",
+        beef: "牛肉",
+        chicken: "鸡肉",
+        fish: "鱼",
+        frozen: "冷冻",
+        cream: "奶油",
+        chocolate: "巧克力",
+        sauce: "酱",
+        sauces: "酱料",
+        juice: "果汁",
+        wine: "葡萄酒",
+        beer: "啤酒",
+        canned: "罐装",
+        fresh: "新鲜",
+        whole: "全",
+        wheat: "小麦",
+        rice: "米",
+        pasta: "意大利面",
+        snack: "零食",
+        snacks: "零食",
+        cookies: "曲奇",
+        muffin: "松饼",
+        muffins: "松饼",
+    };
+
+    const itemCnLabel = (name) => {
+        const text = String(name || "").trim();
+        if (!text) {
+            return "";
+        }
+        if (itemTranslations[text]) {
+            return itemTranslations[text];
+        }
+        const generated = Array.from(new Set(
+            (text.match(/[A-Za-z0-9]+/g) || [])
+                .map((token) => itemTokenTranslations[token.toLowerCase()])
+                .filter(Boolean),
+        ));
+        return generated.length ? generated.join("") : "商品中文注释待补充";
+    };
+
+    const itemLabelHtml = (name) => {
+        const text = String(name || "").trim();
+        const cn = itemCnLabel(text);
+        return `
+            <span class="translated-item compact" title="${cn ? `${escapeHtml(cn)} / ` : ""}${escapeHtml(text)}">
+                <span class="item-en">${escapeHtml(text)}</span>
+                ${cn ? `<span class="item-cn">${escapeHtml(cn)}</span>` : ""}
+            </span>
+        `;
+    };
+
+    const itemListHtml = (text) => String(text || "")
+        .split(/[、,]/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .map(itemLabelHtml)
+        .join("");
+
+    const translateItemText = (text) => {
+        let output = String(text || "");
+        Object.entries(itemTranslations)
+            .sort((left, right) => right[0].length - left[0].length)
+            .forEach(([en, cn]) => {
+                output = output.replaceAll(en, `${en}（${cn}）`);
+            });
+        return output;
+    };
+
+    document.querySelectorAll("[data-translate-item-text]").forEach((node) => {
+        node.textContent = translateItemText(node.textContent);
+    });
 
     document.querySelectorAll("[data-export-table]").forEach((button) => {
         button.addEventListener("click", () => {
@@ -581,6 +795,40 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("Markdown 报告已复制。");
     });
 
+    // 数据湖注解只保存在当前浏览器，不改动服务器端数据或接口。
+    const datasetNotePanel = document.querySelector("[data-dataset-note]");
+    if (datasetNotePanel) {
+        const datasetId = datasetNotePanel.dataset.datasetNote;
+        const noteKey = `ruleLakeDatasetNote:${datasetId}`;
+        const input = datasetNotePanel.querySelector("[data-dataset-note-input]");
+        const status = datasetNotePanel.querySelector("[data-dataset-note-status]");
+        const clearButton = datasetNotePanel.querySelector("[data-clear-dataset-note]");
+
+        const syncNoteStatus = () => {
+            const length = input?.value.trim().length || 0;
+            if (status) {
+                status.textContent = length ? `已保存 ${length} 个字符` : "未填写注解";
+            }
+        };
+
+        if (input) {
+            input.value = localStorage.getItem(noteKey) || "";
+            syncNoteStatus();
+            input.addEventListener("input", () => {
+                localStorage.setItem(noteKey, input.value);
+                syncNoteStatus();
+            });
+        }
+
+        clearButton?.addEventListener("click", () => {
+            localStorage.removeItem(noteKey);
+            if (input) {
+                input.value = "";
+            }
+            syncNoteStatus();
+        });
+    }
+
     // 实验页数据湖资产预览：提交当前表单给 /preview_dataset。
     document.querySelector("[data-preview-dataset]")?.addEventListener("click", async () => {
         const form = document.querySelector(".experiment-form");
@@ -613,7 +861,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <thead><tr><th>transaction_id</th><th>items</th></tr></thead>
                     <tbody>
                         ${payload.preview_rows
-                            .map((row) => `<tr><td>${row.transaction_id}</td><td>${row.items_text}</td></tr>`)
+                            .map((row) => `<tr><td>${escapeHtml(row.transaction_id)}</td><td><span class="translated-item-list">${itemListHtml(row.items_text)}</span></td></tr>`)
                             .join("")}
                     </tbody>
                 </table>
@@ -774,11 +1022,20 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!target) {
             return;
         }
+        const itemState = (item) => {
+            if (["牛奶", "面包"].includes(item)) {
+                return "keep";
+            }
+            if (item === "黄油") {
+                return "candidate";
+            }
+            return "drop";
+        };
         target.innerHTML = demoTransactions
             .map((transaction) => `
                 <div class="demo-basket">
                     <strong>${transaction.id}</strong>
-                    <span>${transaction.items.map((item) => `<i>${item}</i>`).join("")}</span>
+                    <span>${transaction.items.map((item) => `<i class="${itemState(item)}">${item}</i>`).join("")}</span>
                 </div>
             `)
             .join("");
@@ -1109,7 +1366,7 @@ document.addEventListener("DOMContentLoaded", () => {
         visualCanvas.innerHTML = `
             <div class="visual-section-title">前缀递归扩展示意</div>
             <div class="prefix-tree">
-                <div class="prefix-node root">∅</div>
+                <div class="prefix-node root keep">∅ 起始前缀</div>
                 <div class="prefix-row">
                     <div class="prefix-node keep">牛奶 {T1,T2,T4,T5}</div>
                     <div class="prefix-node keep">面包 {T1,T2,T3,T5}</div>
