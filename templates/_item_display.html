@@ -1,0 +1,17 @@
+{% macro item_label(name, compact=false) -%}
+    {%- set cn = item_translation(name) -%}
+    <span class="translated-item{% if compact %} compact{% endif %}" title="{% if cn %}{{ cn }} / {% endif %}{{ name }}">
+        <span class="item-en">{{ name }}</span>
+        {%- if cn and cn != name -%}
+        <span class="item-cn">{{ cn }}</span>
+        {%- endif -%}
+    </span>
+{%- endmacro %}
+
+{% macro item_list(items, compact=false) -%}
+    <span class="translated-item-list">
+    {%- for name in items -%}
+        {{ item_label(name, compact) }}
+    {%- endfor -%}
+    </span>
+{%- endmacro %}

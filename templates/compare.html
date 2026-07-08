@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_item_display.html" as item_display with context %}
 
 {% block title %}算法对比仪表盘 - 关联规则挖掘工作台{% endblock %}
 
@@ -132,7 +133,7 @@
                     <td data-value="{{ row.best_lift }}">{{ "%.2f"|format(row.best_lift) }}</td>
                     <td>
                         {% if row.best_rule %}
-                        {{ row.best_rule.antecedent|items }} -> {{ row.best_rule.consequent|items }}
+                        {{ item_display.item_list(row.best_rule.antecedent, true) }} -> {{ item_display.item_list(row.best_rule.consequent, true) }}
                         {% else %}
                         无
                         {% endif %}

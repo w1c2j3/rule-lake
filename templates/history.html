@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_item_display.html" as item_display with context %}
 
 {% block title %}实验历史中心 - 关联规则挖掘工作台{% endblock %}
 
@@ -43,7 +44,15 @@
                     support {{ run.min_support|percent }}，confidence {{ run.min_confidence|percent }}，
                     {{ run.frequent_count }} 项集，{{ run.rules_count }} 规则，耗时 {{ "%.2f"|format(run.elapsed_ms) }} ms。
                 </p>
-                <p>代表规则：{{ run.best_rule_text }}，lift {{ "%.2f"|format(run.best_lift) }}</p>
+                <p>
+                    代表规则：
+                    {% if run.best_rule and run.best_rule.antecedent and run.best_rule.consequent %}
+                    {{ item_display.item_list(run.best_rule.antecedent, true) }} -> {{ item_display.item_list(run.best_rule.consequent, true) }}
+                    {% else %}
+                    <span data-translate-item-text>{{ run.best_rule_text }}</span>
+                    {% endif %}
+                    ，lift {{ "%.2f"|format(run.best_lift) }}
+                </p>
             </div>
             <div class="history-run-actions">
                 <a class="btn mini primary" href="{{ url_for('run_record_page', run_id=run.run_id) }}">打开记录</a>
