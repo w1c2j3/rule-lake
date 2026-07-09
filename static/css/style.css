@@ -1384,10 +1384,13 @@ code {
 }
 
 .radio-grid,
-.algorithm-picker,
 .preset-row,
 .mini-stats {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.algorithm-picker {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 .task-readout {

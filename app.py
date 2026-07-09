@@ -1,6 +1,6 @@
 """Rule Lake Flask 应用主入口。
 
-这个文件负责把“数据湖资产、三种关联规则算法、结果分析、页面模板”
+这个文件负责把“数据湖资产、五种关联规则算法、结果分析、页面模板”
 串成一个可运行的网站：
 - 读取内置/上传/本机 CSV 数据；
 - 调用 Apriori、FP-Growth、Eclat 算法；
@@ -26,7 +26,7 @@ try:
 except ModuleNotFoundError:
     import tomli as tomllib
 
-from algorithms import apriori, eclat, fpgrowth
+from algorithms import ais, apriori, eclat, fpgrowth, hmine
 
 
 # 项目路径与默认数据湖资产配置。
@@ -584,6 +584,18 @@ ALGORITHMS = {
         "tagline": "垂直数据格式 + TID-set 交集",
         "compare_note": "用 TID-set 交集计算支持度，稀疏数据上很直接；商品很多时集合存储会占用更多内存。",
     },
+    "ais": {
+        "name": "AIS",
+        "runner": ais.run,
+        "tagline": "逐笔扫描 + 交易内候选扩展",
+        "compare_note": "只在实际交易内扩展候选，逻辑直观；多轮扫描和候选重复计数使它更适合作为早期算法教学基线。",
+    },
+    "hmine": {
+        "name": "H-Mine",
+        "runner": hmine.run,
+        "tagline": "H-Struct + 递归数据库投影",
+        "compare_note": "通过内存超链接结构和前缀投影挖掘模式，避免全局候选生成，适合稀疏数据。",
+    },
 }
 
 # 默认数据源说明，用于兼容早期课程要求中的 data/transactions.csv。
@@ -768,6 +780,35 @@ ALGORITHM_CODE_SNIPPETS = {
                 suffix.append((itemset | next_itemset, joined_tidset))
         eclat(prefix | itemset, suffix, min_count)""",
     },
+    "ais": {
+        "name": "AIS",
+        "title": "逐笔交易扩展候选项集",
+        "code": """def ais(transactions, min_support):
+    frequent = find_frequent_single_items(transactions, min_support)
+    candidates = frequent
+
+    for transaction in transactions:
+        for itemset in candidates_in(transaction, candidates):
+            for item in transaction - itemset:
+                count[itemset | {item}] += 1
+
+    candidates = keep_min_support(count, min_support)
+    repeat_until_no_new_candidates()
+    return frequent + candidates""",
+    },
+    "hmine": {
+        "name": "H-Mine",
+        "title": "H-Struct 超链接投影挖掘",
+        "code": """def h_mine(projected_db, prefix, min_support):
+    header = build_h_struct(projected_db, min_support)
+
+    for item in header:
+        pattern = prefix | {item}
+        output(pattern)
+        next_db = hyperlinked_projection(header, item)
+        if next_db:
+            h_mine(next_db, pattern, min_support)""",
+    },
 }
 
 # 小组配置的默认值；如果 config/team.toml 不存在或损坏，页面使用这里兜底。
@@ -775,7 +816,7 @@ DEFAULT_TEAM_CONFIG = {
     "group": {
         "name": "第 3 组",
         "project_name": "关联规则挖掘算法课程网站",
-        "subtitle": "Apriori / FP-Growth / Eclat",
+        "subtitle": "Apriori / FP-Growth / Eclat / AIS / H-Mine",
         "course": "数据挖掘课程项目",
         "description": "基于真实购物篮数据，完成关联规则挖掘算法教学、实验运行、结果分析和报告导出。",
     },
@@ -807,13 +848,13 @@ DEFAULT_TEAM_CONFIG = {
     ],
     "modules": [
         {"name": "数据湖资产管理", "owner": "全组", "status": "已完成", "description": "内置多个公开购物篮资产，支持上传 CSV 和服务器本机路径。"},
-        {"name": "算法运行控制台", "owner": "全组", "status": "已完成", "description": "支持算法选择、阈值设置、三算法对比和支持度扫描。"},
+        {"name": "算法运行控制台", "owner": "全组", "status": "已完成", "description": "支持算法选择、阈值设置、五算法对比和支持度扫描。"},
         {"name": "可视化教学舱", "owner": "全组", "status": "已完成", "description": "用动态步骤解释 Apriori、FP-Growth、Eclat 的核心过程。"},
         {"name": "结果分析与导出", "owner": "全组", "status": "已完成", "description": "展示频繁项集、关联规则、lift 分析、CSV 导出和 Markdown 报告。"},
     ],
     "milestones": [
         {"title": "真实数据湖接入", "date": "第 1 阶段", "status": "已完成"},
-        {"title": "三种算法可运行", "date": "第 2 阶段", "status": "已完成"},
+        {"title": "五种算法可运行", "date": "第 2 阶段", "status": "已完成"},
         {"title": "可视化教学与结果分析", "date": "第 3 阶段", "status": "已完成"},
         {"title": "页面发布与小组展示", "date": "第 4 阶段", "status": "进行中"},
     ],
@@ -1338,7 +1379,7 @@ def build_run_stages(algorithm_key, process_logs, frequent_itemsets, rules):
                 numbers = parse_first_ints(log)
                 stages.append({"label": "MINE", "title": "挖掘频繁模式", "primary": numbers[-1] if numbers else len(frequent_itemsets), "secondary": len(rules), "primary_label": "频繁项集", "secondary_label": "规则", "width": 90})
 
-    else:
+    elif algorithm_key == "eclat":
         # Eclat 关注垂直格式、频繁单项和递归交集扩展。
         for log in process_logs:
             if "垂直数据格式构建完成" in log:
@@ -1350,6 +1391,32 @@ def build_run_stages(algorithm_key, process_logs, frequent_itemsets, rules):
             elif "递归扩展完成" in log:
                 numbers = parse_first_ints(log)
                 stages.append({"label": "RECURSE", "title": "递归交集扩展", "primary": numbers[0] if numbers else 0, "secondary": numbers[-1] if numbers else len(frequent_itemsets), "primary_label": "扩展次数", "secondary_label": "频繁项集", "width": 100})
+
+    elif algorithm_key == "ais":
+        for log in process_logs:
+            if "AIS 第" in log and "候选" in log:
+                numbers = parse_first_ints(log)
+                stages.append({
+                    "label": f"SCAN-{numbers[0] if numbers else len(stages) + 1}",
+                    "title": "扫描交易并扩展候选",
+                    "primary": numbers[-2] if len(numbers) >= 2 else 0,
+                    "secondary": numbers[-1] if numbers else 0,
+                    "primary_label": "候选项集",
+                    "secondary_label": "频繁项集",
+                    "width": 100,
+                })
+
+    elif algorithm_key == "hmine":
+        for log in process_logs:
+            if "H-Struct 构建完成" in log:
+                numbers = parse_first_ints(log)
+                stages.append({"label": "H-STRUCT", "title": "构建内存超链接结构", "primary": numbers[0] if numbers else 0, "secondary": numbers[1] if len(numbers) > 1 else 0, "primary_label": "交易", "secondary_label": "商品", "width": 75})
+            elif "投影挖掘完成" in log:
+                numbers = parse_first_ints(log)
+                stages.append({"label": "PROJECT", "title": "递归投影数据库", "primary": numbers[0] if numbers else 0, "secondary": numbers[-1] if numbers else len(frequent_itemsets), "primary_label": "投影次数", "secondary_label": "频繁项集", "width": 100})
+
+    if not stages:
+        stages.append({"label": "MINE", "title": "频繁模式挖掘", "primary": len(frequent_itemsets), "secondary": len(rules), "primary_label": "频繁项集", "secondary_label": "规则", "width": 100})
 
     max_primary = max((stage["primary"] for stage in stages), default=1)
     for stage in stages:
@@ -1384,7 +1451,7 @@ def compact_rule(rule):
 def summarize_algorithm_runs(run_results):
     """把一次请求内的多算法结果压缩为模板展示需要的摘要列表。
 
-    run_algorithm_with_timing 返回值里包含完整频繁项集和规则；三算法对比卡片
+    run_algorithm_with_timing 返回值里包含完整频繁项集和规则；五算法对比卡片
     只需要耗时、项集数、规则数和最高 lift，因此这里剥离大字段，减少保存记录
     和模板渲染的负担。
     """
@@ -1772,7 +1839,7 @@ def dataset_item_choices(rows, limit=48):
 
 
 def build_algorithm_comparison(dataset_id, min_support, min_confidence, max_transactions):
-    """同一数据湖资产、同一参数下对比三种算法。"""
+    """同一数据湖资产、同一参数下对比五种算法。"""
     dataset = DATASETS.get(dataset_id, DATASETS[DEFAULT_DATASET_ID])
     rows = read_builtin_transactions(dataset_id)[:max_transactions]
     transactions = transaction_sets(rows)
@@ -1874,6 +1941,45 @@ def build_recommendations(rules, selected_items):
     return recommendations
 
 
+def build_cooccurrence_recommendations(rows, selected_items):
+    """规则无法覆盖当前购物篮时，用真实交易共现生成可解释的兜底推荐。"""
+    selected = set(selected_items)
+    baskets = [set(row["items"]) for row in rows]
+    matched = [basket for basket in baskets if basket & selected]
+    if not matched:
+        return []
+
+    item_counts = Counter(item for basket in baskets for item in basket)
+    candidate_counts = Counter(
+        item for basket in matched for item in basket if item not in selected
+    )
+    total = len(baskets)
+    base_count = len(matched)
+    recommendations = []
+    for item, count in candidate_counts.most_common(20):
+        support = count / total if total else 0
+        confidence = count / base_count if base_count else 0
+        baseline = item_counts[item] / total if total else 0
+        lift = confidence / baseline if baseline else 0
+        score = round((confidence * 0.60 + min(lift / 5, 1) * 0.25 + support * 0.15) * 100, 2)
+        recommendations.append(
+            {
+                "antecedent": sorted(selected),
+                "consequent": [item],
+                "support": support,
+                "confidence": confidence,
+                "lift": lift,
+                "score": score,
+                "match_type": "购物篮共现",
+            }
+        )
+
+    max_score = max((row["score"] for row in recommendations), default=1)
+    for row in recommendations:
+        row["width"] = round((row["score"] / max_score) * 100, 2) if max_score else 0
+    return recommendations
+
+
 @app.template_filter("percent")
 def percent_filter(value):
     """Jinja 过滤器：小数转百分比。"""
@@ -1926,7 +2032,7 @@ def run_record_page(run_id):
 
 @app.route("/compare")
 def compare_page():
-    """算法对比页：同一数据湖资产下运行三种算法并展示基准结果。"""
+    """算法对比页：同一数据湖资产下运行五种算法并展示基准结果。"""
     dataset_id = request.args.get("dataset", DEFAULT_DATASET_ID)
     dataset = DATASETS.get(dataset_id, DATASETS[DEFAULT_DATASET_ID])
     dataset_id = next((key for key, value in DATASETS.items() if value == dataset), DEFAULT_DATASET_ID)
@@ -1966,6 +2072,8 @@ def recommender_page():
         transactions = transaction_sets(rows[:max_transactions])
         run = run_algorithm_with_timing(algorithm_key, transactions, min_support, min_confidence)
         recommendations = build_recommendations(run["result"]["rules"], selected_items)
+        if not recommendations:
+            recommendations = build_cooccurrence_recommendations(rows[:max_transactions], selected_items)
         run_summary = run
 
     return render_template(
@@ -1986,7 +2094,7 @@ def recommender_page():
 
 @app.route("/algorithms")
 def algorithms_page():
-    """算法教学页：展示三种算法的可视化步骤和伪代码。"""
+    """算法教学页：展示五种可运行算法的动态教学内容。"""
     return render_template("algorithms.html", code_snippets=ALGORITHM_CODE_SNIPPETS)
 
 
@@ -2009,12 +2117,16 @@ def dataset_page():
 @app.route("/experiment")
 def experiment_page():
     """实验控制台：配置数据源、算法和阈值参数。"""
-    rows = read_builtin_transactions()
+    dataset_id = request.args.get("dataset", DEFAULT_DATASET_ID)
+    if dataset_id not in DATASETS:
+        dataset_id = DEFAULT_DATASET_ID
+    rows = read_builtin_transactions(dataset_id)
     return render_template(
         "experiment.html",
         algorithms=ALGORITHMS,
         stats=dataset_stats(rows),
-        dataset_info=DATASETS[DEFAULT_DATASET_ID],
+        dataset_info=DATASETS[dataset_id],
+        selected_dataset=dataset_id,
         datasets=dataset_library(),
     )
 
@@ -2065,7 +2177,7 @@ def run_algorithm():
     max_transactions = min(max(max_transactions, 20), 2000)
     history_dataset_id = request.form.get("builtin_dataset", DEFAULT_DATASET_ID) if request.form.get("dataset_mode", "builtin") == "builtin" else ""
     run_keys = list(ALGORITHMS.keys()) if compare_algorithms else [algorithm_key]
-    # 如果勾选三算法对比，则一次请求内运行全部算法；否则只运行当前算法。
+    # 如果勾选五算法对比，则一次请求内运行全部算法；否则只运行当前算法。
     run_results = {
         key: run_algorithm_with_timing(key, transactions, min_support, min_confidence)
         for key in run_keys

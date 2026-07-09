@@ -3,12 +3,12 @@
 {% block title %}Algorithms Visual Lab - 关联规则挖掘算法课程网站{% endblock %}
 
 {% block content %}
-{# 算法教学页：用同一组迷你购物篮可视化三种算法步骤。 #}
+{# 算法教学页：五种算法都提供动态步骤和核心伪代码。 #}
 <section class="page-hero algo-lab-hero">
     <div>
         <span class="hud-label">VISUAL TEACHING LAB</span>
         <h1>关联规则算法可视化教学舱</h1>
-        <p>这里不再只给文字解释，而是用同一组迷你购物篮数据，把 Apriori、FP-Growth、Eclat 的每一步挖掘过程可视化出来。</p>
+        <p>用同一组迷你购物篮动态演示 Apriori、FP-Growth、Eclat、AIS 与 H-Mine 的完整挖掘过程。</p>
     </div>
     <a class="btn primary" href="{{ url_for('experiment_page') }}">进入真实实验</a>
 </section>
@@ -37,6 +37,8 @@
                 <button class="active" type="button" data-visual-algo="apriori">Apriori</button>
                 <button type="button" data-visual-algo="fpgrowth">FP-Growth</button>
                 <button type="button" data-visual-algo="eclat">Eclat</button>
+                <button type="button" data-visual-algo="ais">AIS</button>
+                <button type="button" data-visual-algo="hmine">H-Mine</button>
             </div>
         </div>
 
@@ -77,11 +79,24 @@
     </article>
 </section>
 
+<section class="teaching-map">
+    <article class="teaching-card tone-yellow">
+        <span>AIS / RUNNABLE</span>
+        <h2>在扫描交易时扩展候选</h2>
+        <p>AIS 是关联规则挖掘的早期算法。它逐笔扫描交易，只从当前交易已包含的频繁项集继续扩展候选，思路直观，但可能产生大量候选。</p>
+    </article>
+    <article class="teaching-card tone-cyan">
+        <span>H-MINE / RUNNABLE</span>
+        <h2>用超链接结构做数据库投影</h2>
+        <p>H-Mine 使用 H-Struct 连接相关交易并递归投影，避免构造庞大的候选集合，尤其适合稀疏数据和内存型挖掘场景。</p>
+    </article>
+</section>
+
 {# 展示后端传入的核心伪代码，用于课程讲解。 #}
 <section class="glass-panel code-lab">
     <div class="panel-heading">
         <span class="hud-label">CORE CODE</span>
-        <h2>三个算法的核心伪代码</h2>
+        <h2>五个算法的核心伪代码</h2>
     </div>
     <div class="code-tab-grid">
         {% for key, snippet in code_snippets.items() %}
