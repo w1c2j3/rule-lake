@@ -43,7 +43,7 @@
     <button class="btn glass" type="button" data-save-history>保存到实验历史</button>
     <a class="btn glass" href="{{ url_for('run_record_page', run_id=run_id) }}">打开后端记录</a>
     <a class="btn glass" href="{{ url_for('history_page') }}">实验历史中心</a>
-    <a class="btn glass" href="{{ url_for('experiment_page') }}">返回控制台</a>
+    <a class="btn glass" href="{{ url_for('experiment_page', dataset=history_dataset_id) if history_dataset_id else url_for('experiment_page') }}">返回控制台</a>
 </section>
 
 <section class="glass-panel source-card run-archive-card">
@@ -407,7 +407,7 @@
 </section>
 
 <div class="result-actions">
-    <a class="btn glass" href="{{ url_for('experiment_page') }}">返回控制台</a>
-    <a class="btn primary" href="{{ url_for('dataset_page') }}">查看数据档案</a>
+    <a class="btn glass" href="{{ url_for('experiment_page', dataset=history_dataset_id) if history_dataset_id else url_for('experiment_page') }}">返回控制台</a>
+    <a class="btn primary" href="{{ url_for('dataset_page', dataset=history_dataset_id) if history_dataset_id else url_for('dataset_page') }}">查看数据档案</a>
 </div>
 {% endblock %}

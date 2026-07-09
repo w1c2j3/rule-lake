@@ -822,35 +822,92 @@ DEFAULT_TEAM_CONFIG = {
     },
     "members": [
         {
-            "name": "张三",
-            "student_id": "20240001",
-            "role": "组长 / 后端与算法",
-            "avatar": "张",
+            "name": "魏常见",
+            "student_id": "20241113570",
+            "role": "组长 / 总体设计与统筹",
+            "avatar": "魏",
             "contact": "",
-            "responsibility": ["Flask 路由设计", "Apriori 算法实现", "实验结果分析"],
+            "responsibility": ["总体架构设计与任务分解", "第一版本创建与基础框架搭建", "Bug 修复与功能统筹", "课程要求核对与进度统筹"],
         },
         {
-            "name": "李四",
-            "student_id": "20240002",
-            "role": "数据湖与前端",
+            "name": "江云鹏",
+            "student_id": "20241113568",
+            "role": "后端与 Apriori 算法",
+            "avatar": "江",
+            "contact": "",
+            "responsibility": ["Flask 路由与实验控制台实现", "Apriori 候选生成与剪枝实现", "运行结果指标整理"],
+        },
+        {
+            "name": "李子谦",
+            "student_id": "20241113551",
+            "role": "答辩准备与前端修复",
             "avatar": "李",
             "contact": "",
-            "responsibility": ["真实数据湖资产整理", "数据湖页面展示", "前端交互优化"],
+            "responsibility": ["答辩材料准备", "前端问题修复", "结果页展示核对"],
         },
         {
-            "name": "王五",
-            "student_id": "20240003",
-            "role": "算法讲解与报告",
-            "avatar": "王",
+            "name": "林鑫",
+            "student_id": "20241113557",
+            "role": "Eclat 算法与数据结构",
+            "avatar": "林",
             "contact": "",
-            "responsibility": ["FP-Growth / Eclat 讲解", "可视化教学内容", "实验报告整理"],
+            "responsibility": ["垂直数据格式与 TID-set 交集实现", "规则生成公共逻辑核对", "算法原理材料整理"],
+        },
+        {
+            "name": "刘志",
+            "student_id": "20241113550",
+            "role": "AIS 与 H-Mine 扩展算法",
+            "avatar": "刘",
+            "contact": "",
+            "responsibility": ["AIS 逐笔扫描候选扩展实现", "H-Mine 前缀投影实现", "五算法一致性验证"],
+        },
+        {
+            "name": "李昌浩",
+            "student_id": "20241113571",
+            "role": "数据湖与预处理",
+            "avatar": "李",
+            "contact": "",
+            "responsibility": ["公开购物篮数据集整理", "CSV 字段清洗与交易聚合", "数据湖页面内容核对"],
+        },
+        {
+            "name": "周鑫泽",
+            "student_id": "20241113555",
+            "role": "答辩准备与前端修复",
+            "avatar": "周",
+            "contact": "",
+            "responsibility": ["答辩演示准备", "前端页面修复", "移动端与展示检查"],
+        },
+        {
+            "name": "邓新赐",
+            "student_id": "20241113548",
+            "role": "算法教学与知识卡片",
+            "avatar": "邓",
+            "contact": "",
+            "responsibility": ["算法介绍页知识卡片整理", "可视化教学步骤设计", "知识点正确性校对"],
+        },
+        {
+            "name": "赖邦",
+            "student_id": "20241113556",
+            "role": "推荐模拟与历史归档",
+            "avatar": "赖",
+            "contact": "",
+            "responsibility": ["商品推荐模拟器场景设计", "服务器端实验历史归档", "历史记录回看功能测试"],
+        },
+        {
+            "name": "龚子豪",
+            "student_id": "20241113573",
+            "role": "测试、截图与文档",
+            "avatar": "龚",
+            "contact": "",
+            "responsibility": ["功能验证与页面长截图", "实验数据与图表截图整理", "课程报告排版检查"],
         },
     ],
     "modules": [
-        {"name": "数据湖资产管理", "owner": "全组", "status": "已完成", "description": "内置多个公开购物篮资产，支持上传 CSV 和服务器本机路径。"},
-        {"name": "算法运行控制台", "owner": "全组", "status": "已完成", "description": "支持算法选择、阈值设置、五算法对比和支持度扫描。"},
-        {"name": "可视化教学舱", "owner": "全组", "status": "已完成", "description": "用动态步骤解释 Apriori、FP-Growth、Eclat 的核心过程。"},
-        {"name": "结果分析与导出", "owner": "全组", "status": "已完成", "description": "展示频繁项集、关联规则、lift 分析、CSV 导出和 Markdown 报告。"},
+        {"name": "总体设计与报告统筹", "owner": "魏常见", "status": "已完成", "description": "完成课程要求拆解、系统架构设计、第一版本创建、Bug 修复和成员协作安排。"},
+        {"name": "关联规则算法实现", "owner": "江云鹏、李子谦、林鑫、刘志", "status": "已完成", "description": "实现 Apriori、FP-Growth、Eclat、AIS、H-Mine 五种关联规则挖掘算法。"},
+        {"name": "数据湖资产管理", "owner": "李昌浩", "status": "已完成", "description": "内置多个公开购物篮数据集，支持上传 CSV 和服务器本机路径。"},
+        {"name": "前端页面与交互展示", "owner": "李子谦、周鑫泽", "status": "已完成", "description": "完成前端页面修复、结果页展示核对、移动端展示检查和答辩演示准备。"},
+        {"name": "推荐、历史与报告素材", "owner": "赖邦、龚子豪", "status": "已完成", "description": "完成推荐模拟器、实验历史归档、页面长截图和课程报告素材整理。"},
     ],
     "milestones": [
         {"title": "真实数据湖接入", "date": "第 1 阶段", "status": "已完成"},
@@ -1941,38 +1998,54 @@ def build_recommendations(rules, selected_items):
     return recommendations
 
 
-def build_cooccurrence_recommendations(rows, selected_items):
-    """规则无法覆盖当前购物篮时，用真实交易共现生成可解释的兜底推荐。"""
+def build_cooccurrence_recommendations(rows, selected_items, excluded=None, limit=20):
+    """规则无法覆盖当前购物篮时，用真实交易共现或热门商品兜底推荐。"""
+    excluded = excluded or set()
     selected = set(selected_items)
     baskets = [set(row["items"]) for row in rows]
-    matched = [basket for basket in baskets if basket & selected]
-    if not matched:
-        return []
-
     item_counts = Counter(item for basket in baskets for item in basket)
-    candidate_counts = Counter(
-        item for basket in matched for item in basket if item not in selected
-    )
     total = len(baskets)
-    base_count = len(matched)
+
+    if selected:
+        matched = [basket for basket in baskets if basket & selected]
+        candidate_counts = Counter(
+            item for basket in matched for item in basket if item not in selected
+        )
+        source_counts = candidate_counts if candidate_counts else item_counts
+        base_count = len(matched) if candidate_counts else total
+        match_type = "购物篮共现" if candidate_counts else "热门兜底"
+        antecedent = sorted(selected)
+    else:
+        source_counts = item_counts
+        base_count = total
+        match_type = "热门商品"
+        antecedent = []
+
     recommendations = []
-    for item, count in candidate_counts.most_common(20):
+    for item, count in source_counts.most_common(limit * 3):
+        if item in selected or (item,) in excluded:
+            continue
         support = count / total if total else 0
         confidence = count / base_count if base_count else 0
         baseline = item_counts[item] / total if total else 0
-        lift = confidence / baseline if baseline else 0
-        score = round((confidence * 0.60 + min(lift / 5, 1) * 0.25 + support * 0.15) * 100, 2)
+        lift = confidence / baseline if selected and baseline else 1
+        if selected:
+            score = round((confidence * 0.60 + min(lift / 5, 1) * 0.25 + support * 0.15) * 100, 2)
+        else:
+            score = round((support * 0.82 + 0.18) * 100, 2)
         recommendations.append(
             {
-                "antecedent": sorted(selected),
+                "antecedent": antecedent,
                 "consequent": [item],
                 "support": support,
                 "confidence": confidence,
                 "lift": lift,
                 "score": score,
-                "match_type": "购物篮共现",
+                "match_type": match_type,
             }
         )
+        if len(recommendations) >= limit:
+            break
 
     max_score = max((row["score"] for row in recommendations), default=1)
     for row in recommendations:
@@ -2072,9 +2145,20 @@ def recommender_page():
         transactions = transaction_sets(rows[:max_transactions])
         run = run_algorithm_with_timing(algorithm_key, transactions, min_support, min_confidence)
         recommendations = build_recommendations(run["result"]["rules"], selected_items)
-        if not recommendations:
-            recommendations = build_cooccurrence_recommendations(rows[:max_transactions], selected_items)
         run_summary = run
+
+    excluded = {tuple(row["consequent"]) for row in recommendations}
+    if not recommendations or len(recommendations) < 8:
+        recommendations.extend(
+            build_cooccurrence_recommendations(rows[:max_transactions], selected_items, excluded=excluded)
+        )
+        recommendations = sorted(
+            recommendations,
+            key=lambda row: (-row["score"], -row["confidence"], -row["lift"], row["consequent"]),
+        )[:20]
+        max_score = max((row["score"] for row in recommendations), default=1)
+        for row in recommendations:
+            row["width"] = round((row["score"] / max_score) * 100, 2) if max_score else 0
 
     return render_template(
         "recommender.html",
@@ -2103,6 +2187,7 @@ def dataset_page():
     """数据湖页面：展示某个内置资产的画像、来源、字段和预览。"""
     dataset_id = request.args.get("dataset", DEFAULT_DATASET_ID)
     dataset = DATASETS.get(dataset_id, DATASETS[DEFAULT_DATASET_ID])
+    dataset_id = next((key for key, value in DATASETS.items() if value == dataset), DEFAULT_DATASET_ID)
     rows = read_builtin_transactions(dataset_id)
     return render_template(
         "dataset.html",
@@ -2159,12 +2244,16 @@ def run_algorithm():
         rows, dataset_label = rows_from_request()
         rows, limit_note = apply_transaction_limit(rows)
     except ValueError as exc:
-        builtin_rows = read_builtin_transactions()
+        fallback_dataset_id = request.form.get("builtin_dataset", DEFAULT_DATASET_ID)
+        if fallback_dataset_id not in DATASETS:
+            fallback_dataset_id = DEFAULT_DATASET_ID
+        builtin_rows = read_builtin_transactions(fallback_dataset_id)
         return render_template(
             "experiment.html",
             algorithms=ALGORITHMS,
             stats=dataset_stats(builtin_rows),
-            dataset_info=DATASETS[DEFAULT_DATASET_ID],
+            dataset_info=DATASETS[fallback_dataset_id],
+            selected_dataset=fallback_dataset_id,
             datasets=dataset_library(),
             error=str(exc),
         )

@@ -27,6 +27,20 @@
 - Bread Basket Bakery Dataset
 - Market Basket Grocery Dataset
 
+内置 CSV 已经放在本地仓库中：
+
+| 文件 | 交易数 | 说明 |
+| --- | ---: | --- |
+| `data/datasets/uci_online_retail_france.csv` | 312 | UCI Online Retail France |
+| `data/datasets/uci_online_retail_germany.csv` | 323 | UCI Online Retail Germany |
+| `data/datasets/uci_online_retail_eire.csv` | 234 | UCI Online Retail EIRE |
+| `data/datasets/uci_online_retail_united_kingdom.csv` | 500 | UCI Online Retail United Kingdom |
+| `data/datasets/groceries.csv` | 7,676 | Groceries Dataset |
+| `data/datasets/bread_basket.csv` | 5,517 | Bread Basket Bakery Dataset |
+| `data/datasets/market_basket_grocery.csv` | 5,747 | Market Basket Grocery Dataset |
+
+`data/transactions.csv` 是兼容早期课程要求的默认数据文件，当前内容与 UCI France 数据湖一致，共 312 条交易。运行时 Flask 会优先读取 `data/datasets/` 下的对应 CSV，缺失时才回退到 `data/transactions.csv`。
+
 主要来源：
 
 - https://archive.ics.uci.edu/dataset/352/online+retail
@@ -34,7 +48,7 @@
 - https://github.com/prasertcbs/basic-dataset/blob/master/BreadBasket_DMS.csv
 - https://github.com/HwaiTengTeoh/Market-Basket-Analysis/blob/master/Market_Basket_Data.csv
 
-本项目本地已下载原始 `Online Retail.xlsx` 压缩包并转换出 `data/transactions.csv`。上传到 GitHub 时只提交可直接运行的转换后真实数据集，原始压缩包和 `data/raw/` 不进入源码仓库：
+本项目本地已下载原始 `Online Retail.xlsx` 压缩包并转换出可运行 CSV。上传到 GitHub 时只需要提交可直接运行的转换后真实数据集，原始压缩包和 `data/raw/` 是本地缓存，不进入源码仓库：
 
 - 从原始 541,909 行交易中筛选多个国家的正向订单。
 - 过滤取消订单、非正数量、邮费、人工费用和折扣记录。
@@ -73,6 +87,22 @@ python app.py
 http://127.0.0.1:5000
 ```
 
+## 生成课程报告
+
+仓库提供报告生成脚本，会自动启动本地 Flask 服务、运行实验、截图并生成 Word 兼容 `.doc` 报告：
+
+```bash
+uv run --with Flask --with playwright python scripts/generate_course_report.py
+```
+
+生成结果：
+
+- `大作业_《数据挖掘技术课程设计》实验报告书.doc`
+- `report_assets/experiment_summary.json`
+- `report_assets/screenshots/`
+
+脚本会覆盖当前报告，并删除旧的 `.original.bak` 备份文件，避免历史报告重复占用空间。`report_assets/` 是本轮报告的截图和摘要素材，需要重新生成报告时可以删除后再运行脚本。
+
 ## 小组成员配置
 
 成员信息不写死在 HTML 中，统一放在：
@@ -110,12 +140,24 @@ association-rule-website/
 ├── config/
 │   └── team.toml
 ├── data/
-│   └── transactions.csv
+│   ├── transactions.csv
+│   └── datasets/
+│       ├── bread_basket.csv
+│       ├── groceries.csv
+│       ├── market_basket_grocery.csv
+│       ├── uci_online_retail_eire.csv
+│       ├── uci_online_retail_france.csv
+│       ├── uci_online_retail_germany.csv
+│       └── uci_online_retail_united_kingdom.csv
 ├── algorithms/
 │   ├── __init__.py
 │   ├── apriori.py
 │   ├── fpgrowth.py
-│   └── eclat.py
+│   ├── eclat.py
+│   ├── ais.py
+│   └── hmine.py
+├── scripts/
+│   └── generate_course_report.py
 ├── templates/
 │   ├── base.html
 │   ├── index.html

@@ -9,9 +9,9 @@
     <div>
         <span class="hud-label">ALGORITHM BENCHMARK</span>
         <h1>算法对比仪表盘</h1>
-        <p>在同一数据湖资产、同一参数下同时运行 Apriori、FP-Growth、Eclat，对比耗时、频繁项集数量、规则数量和最高 lift。</p>
+        <p>在同一数据湖资产、同一参数下同时运行 Apriori、FP-Growth、Eclat、AIS、H-Mine，对比耗时、频繁项集数量、规则数量和最高 lift。</p>
     </div>
-    <a class="btn primary" href="{{ url_for('experiment_page') }}">进入完整实验</a>
+    <a class="btn primary" href="{{ url_for('experiment_page', dataset=selected_dataset) }}">进入完整实验</a>
 </section>
 
 {# 对比参数表单，提交后通过 query string 重新计算。 #}
@@ -65,7 +65,7 @@
     </article>
 </section>
 
-{# 三个算法的横向基准卡片。 #}
+{# 五个算法的横向基准卡片。 #}
 <section class="compare-dashboard-grid">
     {% for row in comparison.runs %}
     <article class="compare-run-card">
@@ -94,7 +94,7 @@
     <article class="glass-panel">
         <span class="hud-label">HOW TO READ</span>
         <h2>如何解读</h2>
-        <p>Apriori 更适合教学展示候选生成，FP-Growth 更强调压缩交易路径，Eclat 更强调集合交集。对比页用于说明同一输入下三者的效率和结果规模差异。</p>
+        <p>Apriori 与 AIS 更适合展示候选扩展，FP-Growth 与 H-Mine 更强调压缩或投影，Eclat 更强调集合交集。对比页用于说明同一输入下五种算法的效率和结果规模差异。</p>
     </article>
 </section>
 

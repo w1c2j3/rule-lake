@@ -11,7 +11,7 @@
         <h1>商品推荐模拟器</h1>
         <p>选择用户已经购买的商品，系统会基于真实挖掘出的关联规则推荐可能一起购买的商品，并展示 support、confidence、lift 和推荐分数。</p>
     </div>
-    <a class="btn primary" href="{{ url_for('compare_page') }}">查看算法对比</a>
+    <a class="btn primary" href="{{ url_for('compare_page', dataset=selected_dataset) }}">查看算法对比</a>
 </section>
 
 <section class="recommender-layout">
@@ -88,8 +88,8 @@
             <h2>使用教程及原理</h2>
             <div class="step-stack">
                 <div><strong>01</strong><span>先选择数据湖、算法和阈值，再勾选 1 到 3 个高频商品。</span></div>
-                <div><strong>02</strong><span>系统运行关联规则，查找“当前购物篮包含规则前件”的候选。</span></div>
-                <div><strong>03</strong><span>推荐分综合 confidence、lift 和 support，优先展示更稳定、更相关的商品。</span></div>
+                <div><strong>02</strong><span>系统优先查找“当前购物篮包含规则前件”的候选，规则不足时补充共购推荐。</span></div>
+                <div><strong>03</strong><span>没有输入购物篮时，会展示当前数据湖的热门商品作为默认推荐。</span></div>
             </div>
             <div class="selected-item-list guide-selected-items" data-selected-item-list data-empty-text="当前未选择商品。勾选商品后这里会显示本次输入。">
                 {% for item in selected_items %}
@@ -139,7 +139,13 @@
                 {% for row in recommendations %}
                 <tr>
                     <td>{{ item_display.item_list(row.consequent, true) }}</td>
-                    <td>{{ item_display.item_list(row.antecedent, true) }}</td>
+                    <td>
+                        {% if row.antecedent %}
+                        {{ item_display.item_list(row.antecedent, true) }}
+                        {% else %}
+                        当前数据湖
+                        {% endif %}
+                    </td>
                     <td>{{ row.match_type }}</td>
                     <td data-value="{{ row.support }}">{{ row.support|percent }}</td>
                     <td data-value="{{ row.confidence }}">{{ row.confidence|percent }}</td>

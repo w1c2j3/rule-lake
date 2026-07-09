@@ -12,6 +12,8 @@ venv/
 node_modules/
 .DS_Store
 *.log
+~$*
+*:Zone.Identifier
 
 # Downloaded raw archives are reproducible and too large for normal source commits.
 # Converted real datasets under data/datasets/ and data/transactions.csv are committed.
@@ -20,3 +22,6 @@ data/raw/
 
 # Server-side experiment records are runtime artifacts.
 data/results/
+
+# Generated report screenshots and JSON summaries can be recreated.
+report_assets/
