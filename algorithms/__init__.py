@@ -1,12 +1,12 @@
 """关联规则算法公共工具函数。
 
-三个算法模块都会输出同一种结构：
+五个算法模块都会输出同一种结构：
 - frequent_itemsets: 频繁项集列表
 - rules: 关联规则列表
 - process_logs: 页面展示用的运行过程日志
 
 这里集中放支持度统计、最小支持度计数和规则生成逻辑，避免 Apriori、
-FP-Growth、Eclat 三份代码重复实现同一套公式。
+FP-Growth、Eclat、AIS、H-Mine 重复实现同一套公式。
 """
 
 from itertools import combinations

@@ -11,7 +11,7 @@
         <h1>{{ dataset_info.label }}</h1>
         <p>{{ dataset_info.description }} 当前页面展示资产画像、字段定义、预处理流水线和固定高度数据预览。</p>
     </div>
-    <a class="btn primary" href="{{ url_for('experiment_page') }}">用此数据运行实验</a>
+    <a class="btn primary" href="{{ url_for('experiment_page', dataset=selected_dataset) }}">用此数据运行实验</a>
 </section>
 
 {# 数据湖资产切换器，点击后通过 query string 切换当前资产。 #}

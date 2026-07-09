@@ -57,6 +57,7 @@
                         data-confidence="{{ dataset.recommended_confidence }}"
                         data-transactions="{{ dataset.transaction_count }}"
                         data-items="{{ dataset.item_count }}"
+                        {% if dataset.id == selected_dataset %}selected{% endif %}
                     >
                         {{ dataset.short }} - {{ dataset.transaction_count }} 交易 / {{ dataset.item_count }} 商品
                     </option>
@@ -148,7 +149,7 @@
         </div>
 
         <div class="control-block final-block">
-            {# 扩展选项用于展示三算法对比、跨资产对比和支持度扫描。 #}
+            {# 扩展选项用于展示五算法对比、跨资产对比和支持度扫描。 #}
             <div class="inline-fields">
                 <div>
                     <label class="field-label" for="max_transactions">最多使用交易数</label>
@@ -156,7 +157,7 @@
                 </div>
                 <label class="check-row">
                     <input type="checkbox" name="compare_algorithms" checked>
-                    <span>同时运行三种算法对比</span>
+                    <span>同时运行五种算法对比</span>
                 </label>
             </div>
             <div class="inline-fields extra-options">
@@ -188,7 +189,7 @@
 
         <article class="glass-panel metric-panel">
             <span class="hud-label">DATA LAKE SNAPSHOT</span>
-            <h2>默认数据湖资产</h2>
+            <h2>当前数据湖资产</h2>
             <div class="mini-stats">
                 <div><span>交易</span><strong>{{ stats.transaction_count }}</strong></div>
                 <div><span>商品</span><strong>{{ stats.item_count }}</strong></div>
@@ -206,7 +207,7 @@
                 <li>规则筛选与 CSV 导出</li>
                 <li>强规则一键筛选</li>
                 <li>规则收藏看板</li>
-                <li>三算法运行对比</li>
+                <li>五算法运行对比</li>
                 <li>后端实验档案</li>
                 <li>support × confidence 参数扫描</li>
                 <li>独立算法对比仪表盘</li>

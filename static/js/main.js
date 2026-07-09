@@ -901,7 +901,7 @@ document.addEventListener("DOMContentLoaded", () => {
         step: 0,
     };
 
-    // 三种算法的教学步骤配置：每一步包含标题、解释、公式和渲染函数。
+    // 五种算法的教学步骤配置：每一步包含标题、解释、公式和渲染函数。
     const visualMeta = {
         apriori: {
             title: "Apriori 可视化",
@@ -1002,9 +1002,75 @@ document.addEventListener("DOMContentLoaded", () => {
                 },
             ],
         },
+        ais: {
+            title: "AIS 可视化",
+            steps: [
+                {
+                    code: "STEP 01",
+                    title: "扫描交易获得频繁单项",
+                    text: "AIS 首先扫描全部交易，统计单个商品支持度，保留满足最小支持度的频繁单项。",
+                    formula: "L1 = { item | count(item) >= min_count }",
+                    render: renderAISSingles,
+                },
+                {
+                    code: "STEP 02",
+                    title: "在当前交易内扩展候选",
+                    text: "处理一条交易时，只从这条交易已经包含的频繁项集继续加入商品，不生成从未共同出现的组合。",
+                    formula: "candidate = frequent set ∪ item in current transaction",
+                    render: renderAISExtensions,
+                },
+                {
+                    code: "STEP 03",
+                    title: "累计候选支持度",
+                    text: "逐笔扫描产生的同一候选会累计计数，扫描结束后按支持度阈值筛选下一层频繁项集。",
+                    formula: "Lk = { c in Ck | count(c) >= min_count }",
+                    render: renderAISCounts,
+                },
+                {
+                    code: "STEP 04",
+                    title: "继续扫描并生成规则",
+                    text: "以上一层频繁项集开始新一轮扫描，直到无法生成新项集，再计算 confidence 和 lift。",
+                    formula: "repeat scan → frequent itemsets → rules",
+                    render: renderAISRules,
+                },
+            ],
+        },
+        hmine: {
+            title: "H-Mine 可视化",
+            steps: [
+                {
+                    code: "STEP 01",
+                    title: "构建 H-Struct",
+                    text: "H-Mine 为每个频繁商品建立入口，并把包含它的交易位置连接起来，形成内存超链接结构。",
+                    formula: "header(item) → linked transaction positions",
+                    render: renderHMineStruct,
+                },
+                {
+                    code: "STEP 02",
+                    title: "选择前缀并投影",
+                    text: "固定一个频繁商品作为前缀，只保留包含它的交易以及它之后可扩展的后缀商品。",
+                    formula: "DB|prefix = suffixes of transactions containing prefix",
+                    render: renderHMineProjection,
+                },
+                {
+                    code: "STEP 03",
+                    title: "递归挖掘投影数据库",
+                    text: "在更小的投影数据库中重新统计频率并继续扩展前缀，无需构造全局候选表。",
+                    formula: "mine(projected DB, prefix ∪ item)",
+                    render: renderHMineRecursion,
+                },
+                {
+                    code: "STEP 04",
+                    title: "汇总模式并生成规则",
+                    text: "递归过程中满足阈值的每个前缀都是频繁项集，最后统一计算关联规则指标。",
+                    formula: "projected patterns → association rules",
+                    render: renderHMineRules,
+                },
+            ],
+        },
     };
 
-    // 教学演示统一使用同一组迷你交易，便于横向比较三种算法思想。
+    // 教学演示统一使用同一组迷你交易，便于横向比较五种算法思想。
     const supportCounts = countItems(demoTransactions);
     const frequentItems = Object.entries(supportCounts)
         .filter(([, count]) => count >= 2)
@@ -1404,6 +1470,90 @@ document.addEventListener("DOMContentLoaded", () => {
                     <p>confidence = 100%</p>
                     <p>lift = 2.50</p>
                 </div>
+            </div>
+        `;
+    }
+
+    function renderAISSingles() {
+        visualCanvas.innerHTML = `
+            <div class="visual-section-title">AIS 第一次交易扫描</div>
+            ${itemCards(Object.entries(supportCounts).sort((left, right) => right[1] - left[1]))}
+        `;
+    }
+
+    function renderAISExtensions() {
+        visualCanvas.innerHTML = `
+            <div class="visual-section-title">只在当前交易中扩展候选</div>
+            <div class="projection-stack">
+                <div class="projection-row"><strong>T1</strong><span>{牛奶} + 面包 → {牛奶, 面包}</span></div>
+                <div class="projection-row"><strong>T2</strong><span>{牛奶} + 尿布 → {牛奶, 尿布}</span></div>
+                <div class="projection-row"><strong>T3</strong><span>{面包} + 黄油 → {面包, 黄油}</span></div>
+                <div class="projection-row"><strong>剪枝</strong><span>不生成未在同一交易出现的候选</span></div>
+            </div>
+        `;
+    }
+
+    function renderAISCounts() {
+        const pairs = Object.entries(pairCounts).sort((left, right) => right[1] - left[1]);
+        visualCanvas.innerHTML = `
+            <div class="visual-section-title">候选累计计数与支持度筛选</div>
+            ${itemCards(pairs, { label: "候选二项集" })}
+        `;
+    }
+
+    function renderAISRules() {
+        visualCanvas.innerHTML = `
+            <div class="visual-section-title">AIS 多轮扫描输出</div>
+            <div class="rule-demo-grid">
+                <div class="rule-demo-card keep"><span>频繁项集</span><strong>{牛奶, 面包}</strong><p>count = 3</p></div>
+                <div class="rule-demo-card keep"><span>频繁项集</span><strong>{尿布, 啤酒}</strong><p>count = 2</p></div>
+                <div class="rule-demo-card keep"><span>强规则</span><strong>尿布 → 啤酒</strong><p>confidence = 100%</p></div>
+            </div>
+        `;
+    }
+
+    function renderHMineStruct() {
+        visualCanvas.innerHTML = `
+            <div class="visual-section-title">H-Struct 商品入口与交易链接</div>
+            <div class="tidset-grid">
+                <div><strong>牛奶</strong><span>T1 → T2 → T4 → T5</span></div>
+                <div><strong>面包</strong><span>T1 → T2 → T3 → T5</span></div>
+                <div><strong>黄油</strong><span>T1 → T3 → T5</span></div>
+                <div><strong>尿布</strong><span>T2 → T4</span></div>
+            </div>
+        `;
+    }
+
+    function renderHMineProjection() {
+        visualCanvas.innerHTML = `
+            <div class="visual-section-title">以“尿布”为前缀的投影数据库</div>
+            <div class="projection-stack">
+                <div class="projection-row"><strong>T2</strong><span>尿布 | 牛奶、面包、啤酒</span></div>
+                <div class="projection-row"><strong>T4</strong><span>尿布 | 牛奶、啤酒</span></div>
+                <div class="projection-row"><strong>PROJECT</strong><span>牛奶 × 2，啤酒 × 2，面包 × 1</span></div>
+            </div>
+        `;
+    }
+
+    function renderHMineRecursion() {
+        visualCanvas.innerHTML = `
+            <div class="visual-section-title">前缀递归投影路径</div>
+            <div class="prefix-tree">
+                <div class="prefix-root">∅</div>
+                <div class="prefix-level"><span>尿布 : 2</span><span>牛奶 : 4</span><span>面包 : 4</span></div>
+                <div class="prefix-level"><span>尿布 + 啤酒 : 2</span><span>牛奶 + 面包 : 3</span></div>
+                <div class="prefix-level"><span>投影继续缩小，直到没有频繁后缀</span></div>
+            </div>
+        `;
+    }
+
+    function renderHMineRules() {
+        visualCanvas.innerHTML = `
+            <div class="visual-section-title">H-Mine 投影模式输出</div>
+            <div class="rule-demo-grid">
+                <div class="rule-demo-card keep"><span>投影前缀</span><strong>{尿布, 啤酒}</strong><p>support = 2 / 5</p></div>
+                <div class="rule-demo-card keep"><span>关联规则</span><strong>尿布 → 啤酒</strong><p>confidence = 100%</p></div>
+                <div class="rule-demo-card keep"><span>关联强度</span><strong>lift = 2.50</strong><p>正相关组合</p></div>
             </div>
         `;
     }

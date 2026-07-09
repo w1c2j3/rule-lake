@@ -8,7 +8,7 @@
     <div class="hero-copy">
         <span class="eyebrow">Rule Mining Console</span>
         <h1>关联规则挖掘运行平台</h1>
-        <p class="hero-subtitle">面向真实购物篮数据的算法实验系统，覆盖数据湖接入、Apriori / FP-Growth / Eclat 运行、规则评估、推荐模拟和实验复现。</p>
+        <p class="hero-subtitle">面向真实购物篮数据的算法实验系统，覆盖 Apriori / FP-Growth / Eclat / AIS / H-Mine 运行、规则评估、推荐模拟和实验复现。</p>
         <div class="hero-actions">
             <a class="btn primary" href="{{ url_for('experiment_page') }}">启动实验任务</a>
             <a class="btn secondary" href="{{ url_for('compare_page') }}">查看算法基准</a>
@@ -65,7 +65,7 @@
     <article class="glass-panel ops-panel">
         <span class="hud-label">MODEL BENCHMARK</span>
         <h2>算法基准面板</h2>
-        <p>在同一数据湖资产和同一阈值下对比 Apriori、FP-Growth、Eclat 的耗时、规则规模和最高 lift。</p>
+        <p>在同一数据湖资产和同一阈值下对比五种算法的耗时、规则规模和最高 lift。</p>
         <div class="ops-link-row">
             <a class="btn primary" href="{{ url_for('compare_page') }}">算法对比</a>
             <a class="btn glass" href="{{ url_for('algorithms_page') }}">算法教学</a>
